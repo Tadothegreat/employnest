@@ -47,12 +47,16 @@
             {% if recommended_skills %}
                 <div class="recommended-skills-grid">
                     {% for skill in recommended_skills %}
+                        {% set demand_width = 100 - (loop.index0 * 8) %}
+                        {% if demand_width < 10 %}
+                            {% set demand_width = 10 %}
+                        {% endif %}
                         <div class="recommended-skill-card">
                             <div class="skill-rank">#{{ loop.index }}</div>
                             <div class="skill-name">{{ skill }}</div>
                             <div class="skill-demand">
                                 <span class="demand-bar">
-                                    <span class="demand-fill" style="width: {{ 100 - (loop.index0 * 8) }}%;"></span>
+                                    <span class="demand-fill" style="width: {{ demand_width }}%;"></span>
                                 </span>
                                 <span class="demand-label">
                                     {% if loop.index <= 3 %}

@@ -60,9 +60,10 @@
                             <span class="rank-number">#{{ loop.index }}</span>
                             <div class="blind-score">
                                 <div class="blind-score-bar">
-                                    <div class="blind-score-fill" style="width: {{ item.blind_score * 100 }}%;"></div>
+                                    {% set score_width = (item.blind_score * 100) if item.blind_score else 0 %}
+                                    <div class="blind-score-fill" style="width: {{ score_width }}%;"></div>
                                 </div>
-                                <span class="blind-score-text">{{ "%.0f"|format(item.blind_score * 100) }}% Match</span>
+                                <span class="blind-score-text">{{ "%.0f"|format((item.blind_score or 0) * 100) }}% Match</span>
                             </div>
                         </div>
                         

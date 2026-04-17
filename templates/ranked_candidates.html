@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - AI Ranked Candidates</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h2>🤖 AI-Ranked Candidates</h2>
+                <p>Job: <strong>{{ job.title }}</strong> at {{ job.company }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('view_applicants', job_id=job.id) }}" class="btn btn-outline">
+                    📋 View All Applicants
+                </a>
+            </div>
+        </div>
+
+        <!-- AI Explanation -->
+        <div class="ai-ranking-explanation">
+            <div class="explanation-icon">🤖</div>
+            <div class="explanation-text">
+                <h4>AI-Powered Candidate Ranking</h4>
+                <p>
+                    Candidates are ranked based on how well their skills and qualifications match this job's 
+                    requirements. Our AI analyzes profiles and calculates a match percentage for each applicant.
+                </p>
+            </div>
+        </div>
+
+        <!-- Ranked Candidates List -->
+        {% if ranked_applications %}
+            <div class="ranked-candidates-list">
+                {% for item in ranked_applications %}
+                    <div class="candidate-rank-card {% if loop.first %}top-match{% endif %}">
+                        <div class="rank-badge">
+                            {% if loop.first %}
+                                🏆 Top Match
+                            {% else %}
+                                #{{ loop.index }}
+                            {% endif %}
+                        </div>
+                        
+                        <div class="candidate-main">
+                            <div class="candidate-info">
+                                <h3>
+                                    {{ item.applicant.name }}
+                                    <a href="{{ url_for('view_applicant_profile', applicant_id=item.applicant.id) }}" 
+                                       class="btn btn-small btn-outline">
+                                        View Profile
+                                    </a>
+                                </h3>
+                                <p class="candidate-email">{{ item.applicant.email }}</p>
+                                
+                                <!-- Skills Preview -->
+                                {% if item.applicant.skills %}
+                                    <div class="candidate-skills-preview">
+                                        {% set skills_list = item.applicant.skills.split(',')[:5] %}
+                                        {% for skill in skills_list %}
+                                            <span class="skill-tag-small">{{ skill.strip() }}</span>
+                                        {% endfor %}
+                                        {% if item.applicant.skills.split(',')|length > 5 %}
+                                            <span class="skill-tag-more">+{{ item.applicant.skills.split(',')|length - 5 }} more</span>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="match-score-container">
+                                <div class="match-score">
+                                    <div class="score-circle">
+                                        <span class="score-number">{{ "%.0f"|format(item.match_score * 100) }}%</span>
+                                        <span class="score-label">Match</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="candidate-meta">
+                            <span>📅 Applied: {{ item.application.applied_date.strftime('%d %b %Y') }}</span>
+                            <span>📋 Status: <span class="application-status {{ item.application.status }}">{{ item.application.status | title }}</span></span>
+                        </div>
+                        
+                        {% if item.application.cover_letter %}
+                            <div class="cover-letter-preview">
+                                <p>{{ item.application.cover_letter[:200] }}{% if item.application.cover_letter|length > 200 %}...{% endif %}</p>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="candidate-actions">
+                            <a href="{{ url_for('view_applicant_profile', applicant_id=item.applicant.id) }}" 
+                               class="btn btn-outline btn-small">
+                                👤 Full Profile
+                            </a>
+                            <span class="action-placeholder">(Status update features coming soon)</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-results">
+                <p>📭 No applicants for this position yet.</p>
+            </div>
+        {% endif %}
+        
+        <!-- Match Score Legend -->
+        <div class="match-legend">
+            <h4>📊 Understanding Match Scores</h4>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="legend-color high"></span>
+                    <span>80-100%: Excellent match</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color medium"></span>
+                    <span>50-79%: Good match</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color low"></span>
+                    <span>Below 50%: Partial match</span>
+                </div>
+            </div>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('my_jobs') }}">← Back to My Jobs</a>
+        </p>
+    </div>
+</body>
+</html>

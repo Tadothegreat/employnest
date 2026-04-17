@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Recommended Jobs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h2>🎯 AI-Recommended Jobs for You</h2>
+                <p>Based on your skills: 
+                    {% if user.skills %}
+                        <span class="skill-highlight">{{ user.skills }}</span>
+                    {% else %}
+                        <span style="color: #999;">No skills added yet</span>
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{{ url_for('browse_jobs') }}" class="btn btn-outline">Browse All Jobs</a>
+        </div>
+
+        <!-- Recommended Jobs Section -->
+        <div class="job-section-header">
+            <h3>✨ Top Matches</h3>
+            <p>These jobs have the highest match with your profile</p>
+        </div>
+
+        {% if recommended_jobs %}
+            <div class="job-listings">
+                {% for job in recommended_jobs %}
+                    <div class="job-card recommended">
+                        <div class="job-card-header">
+                            <div>
+                                <h3>
+                                    <a href="{{ url_for('job_detail', job_id=job.id) }}">{{ job.title }}</a>
+                                </h3>
+                                <div class="match-badge">
+                                    ⭐ AI Recommended
+                                </div>
+                            </div>
+                            <span class="job-type-badge">{{ job.job_type }}</span>
+                        </div>
+                        
+                        <div class="job-company">
+                            <strong>{{ job.company }}</strong>
+                            {% if job.employer.verified %}
+                                <span class="verified-badge-small" title="Verified Employer">✅</span>
+                            {% endif %}
+                            - {{ job.location }}
+                        </div>
+                        
+                        <div class="job-meta">
+                            <span>📁 {{ job.category or 'General' }}</span>
+                            <span>💰 {{ job.salary }}</span>
+                            <span>📅 Posted: {{ job.posted_date.strftime('%d %b %Y') }}</span>
+                        </div>
+                        
+                        <p class="job-description-preview">
+                            {{ job.description[:200] }}{% if job.description|length > 200 %}...{% endif %}
+                        </p>
+                        
+                        <div class="job-card-footer">
+                            <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-primary">View Details & Apply</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-results">
+                <p>🤖 No strong matches found yet.</p>
+                <p>Try adding more skills to your profile for better recommendations!</p>
+                <a href="{{ url_for('profile') }}" class="btn btn-primary">Update Your Profile</a>
+            </div>
+        {% endif %}
+
+        <!-- Other Jobs Section -->
+        {% if new_jobs %}
+            <div class="job-section-header" style="margin-top: 40px;">
+                <h3>📋 Other Jobs You Might Like</h3>
+                <p>Additional opportunities you haven't applied to yet</p>
+            </div>
+            
+            <div class="job-listings">
+                {% for job in new_jobs %}
+                    <div class="job-card">
+                        <div class="job-card-header">
+                            <h3>
+                                <a href="{{ url_for('job_detail', job_id=job.id) }}">{{ job.title }}</a>
+                            </h3>
+                            <span class="job-type-badge">{{ job.job_type }}</span>
+                        </div>
+                        
+                        <div class="job-company">
+                            <strong>{{ job.company }}</strong>
+                            {% if job.employer.verified %}
+                                <span class="verified-badge-small" title="Verified Employer">✅</span>
+                            {% endif %}
+                            - {{ job.location }}
+                        </div>
+                        
+                        <div class="job-meta">
+                            <span>📁 {{ job.category or 'General' }}</span>
+                            <span>💰 {{ job.salary }}</span>
+                            <span>📅 Posted: {{ job.posted_date.strftime('%d %b %Y') }}</span>
+                        </div>
+                        
+                        <p class="job-description-preview">
+                            {{ job.description[:150] }}{% if job.description|length > 150 %}...{% endif %}
+                        </p>
+                        
+                        <div class="job-card-footer">
+                            <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-outline">View Details</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- AI Explanation -->
+        <div class="ai-explanation-card">
+            <h4>🤖 How Our AI Matching Works</h4>
+            <p>
+                Our intelligent matching engine analyzes your skills and qualifications, then compares them 
+                with job descriptions and requirements using natural language processing (NLP). 
+                Jobs are ranked by relevance to your unique profile.
+            </p>
+            <p style="margin-top: 10px;">
+                <strong>Tip:</strong> Keep your profile updated with relevant skills to get better matches!
+            </p>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

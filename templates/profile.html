@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - My Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Success Message -->
+        {% if request.args.get('updated') %}
+            <div class="alert alert-success">
+                ✅ Profile updated successfully!
+            </div>
+        {% endif %}
+
+        <!-- Profile Form -->
+        <div class="form-container-wide">
+            <h2>👤 My Profile</h2>
+            
+            {% if user.role == 'job_seeker' %}
+                <!-- ========== JOB SEEKER PROFILE ========== -->
+                <p class="form-intro">Complete your profile to get better job matches and recommendations.</p>
+                
+                <!-- Profile Completion Status -->
+                {% if user.profile_complete %}
+                    <div class="profile-complete-badge">
+                        ✅ Profile Complete - You're ready to apply!
+                    </div>
+                {% else %}
+                    <div class="profile-incomplete-badge">
+                        ⚠️ Profile Incomplete - Add your skills and qualifications to get better matches
+                    </div>
+                {% endif %}
+                
+                <form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data" class="profile-form">
+                    <div class="form-group">
+                        <label for="skills">Skills *</label>
+                        <div class="skills-input-container">
+    <textarea name="skills" id="skills" rows="3" 
+              placeholder="e.g., Python, Project Management, Customer Service, Data Analysis"
+              oninput="showSkillSuggestions(this.value)">{{ user.skills or '' }}</textarea>
+    <div id="skill-suggestions" class="skill-suggestions-dropdown"></div>
+    <small>Separate skills with commas. Click suggestions to add.</small>
+</div>
+
+<script>
+async function showSkillSuggestions(input) {
+    const lastSkill = input.split(',').pop().trim();
+    const suggestionsDiv = document.getElementById('skill-suggestions');
+    
+    if (lastSkill.length < 2) {
+        suggestionsDiv.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/skill-suggestions?q=${encodeURIComponent(lastSkill)}`);
+        const data = await response.json();
+        
+        if (data.suggestions.length > 0) {
+            suggestionsDiv.innerHTML = data.suggestions.map(skill => 
+                `<div class="suggestion-item" onclick="addSkill('${skill}')">${skill}</div>`
+            ).join('');
+            suggestionsDiv.style.display = 'block';
+        } else {
+            suggestionsDiv.style.display = 'none';
+        }
+    } catch (e) {
+        suggestionsDiv.style.display = 'none';
+    }
+}
+
+function addSkill(skill) {
+    const textarea = document.getElementById('skills');
+    let skills = textarea.value.split(',').map(s => s.trim()).filter(s => s);
+    
+    // Remove the last partial skill
+    skills.pop();
+    
+    // Add the selected skill
+    skills.push(skill);
+    
+    // Update textarea
+    textarea.value = skills.join(', ') + (skills.length > 0 ? ', ' : '');
+    
+    // Hide suggestions
+    document.getElementById('skill-suggestions').style.display = 'none';
+    
+    // Focus back on textarea
+    textarea.focus();
+}
+
+// Hide suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.skills-input-container')) {
+        document.getElementById('skill-suggestions').style.display = 'none';
+    }
+});
+</script>
+                        <small>Separate skills with commas</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="qualifications">Qualifications & Education *</label>
+                        <textarea name="qualifications" id="qualifications" rows="4" 
+                                  placeholder="e.g., Bachelor's Degree in Computer Science, Diploma in Business Management">{{ user.qualifications or '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="experience_years">Years of Experience</label>
+                            <input type="number" name="experience_years" id="experience_years" 
+                                   min="0" max="50" value="{{ user.experience_years or 0 }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resume">Upload Resume (PDF, DOC, DOCX)</label>
+                            <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx">
+                            {% if user.resume_filename %}
+                                <small>Current resume: {{ user.resume_filename }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">💾 Save Profile</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Cancel</a>
+                    </div>
+                </form>
+                
+            {% else %}
+                <!-- ========== EMPLOYER PROFILE ========== -->
+                <p class="form-intro">Update your company information.</p>
+                
+                <form method="POST" action="{{ url_for('profile') }}" class="profile-form">
+                    <div class="form-group">
+                        <label for="company_name">Company Name</label>
+                        <input type="text" name="company_name" id="company_name" 
+                               placeholder="e.g., TechCorp Zimbabwe Ltd"
+                               value="{{ user.company_name or '' }}">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="company_phone">Company Phone</label>
+                            <input type="text" name="company_phone" id="company_phone" 
+                                   placeholder="e.g., +263 77 123 4567"
+                                   value="{{ user.company_phone or '' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="verification_status">Verification Status</label>
+                            <div style="padding: 10px; background: #f7f9fc; border-radius: 5px;">
+                                {% if user.verified %}
+                                    <span style="color: #28a745;">✅ Verified Employer</span>
+                                {% elif user.verification_requested %}
+                                    <span style="color: #ffc107;">⏳ Verification Pending</span>
+                                {% else %}
+                                    <span style="color: #dc3545;">⚠️ Not Verified</span>
+                                    <a href="{{ url_for('request_verification') }}" style="margin-left: 10px;">Request Verification</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company_address">Company Address</label>
+                        <textarea name="company_address" id="company_address" rows="3" 
+                                  placeholder="Full physical address">{{ user.company_address or '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">💾 Save Profile</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Cancel</a>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+        
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Verify Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+        </nav>
+
+        <!-- Verification Form -->
+        <div class="form-container">
+            <h2>📱 Verify Your Account</h2>
+            <p class="form-intro">We've sent verification codes to your email and phone (if provided).</p>
+            
+            {% if request.args.get('resent') %}
+                <div class="alert alert-success">
+                    ✅ New verification codes sent!
+                </div>
+            {% endif %}
+            
+            <div class="dev-notice" style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <strong>🔧 Development Mode</strong><br>
+                Email code: <strong>{{ user.email_verification_code }}</strong><br>
+                {% if user.phone_number %}
+                    Phone code: <strong>{{ user.phone_verification_code }}</strong>
+                {% endif %}
+            </div>
+            
+            <form method="POST" action="{{ url_for('verify_account') }}">
+                <div class="form-group">
+                    <label for="email_code">Email Verification Code *</label>
+                    <input type="text" name="email_code" id="email_code" placeholder="6-digit code" maxlength="6" required>
+                    <small>Sent to: {{ user.email }}</small>
+                </div>
+                
+                {% if user.phone_number %}
+                    <div class="form-group">
+                        <label for="phone_code">Phone Verification Code *</label>
+                        <input type="text" name="phone_code" id="phone_code" placeholder="6-digit code" maxlength="6" required>
+                        <small>Sent to: {{ user.phone_number }}</small>
+                    </div>
+                {% endif %}
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Verify Account</button>
+            </form>
+            
+            <p style="text-align: center; margin-top: 20px;">
+                Didn't receive the code? <a href="{{ url_for('resend_verification') }}">Resend Codes</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

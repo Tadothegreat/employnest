@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - My Jobs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h2>📋 Manage Your Job Postings</h2>
+            <a href="{{ url_for('post_job') }}" class="btn btn-primary">➕ Post New Job</a>
+        </div>
+
+        <!-- Jobs Table -->
+        {% if jobs %}
+            <div class="jobs-table-container">
+                <table class="jobs-table">
+                    <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Location</th>
+                            <th>Type</th>
+                            <th>Posted</th>
+                            <th>Status</th>
+                            <th>Applicants</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('job_detail', job_id=job.id) }}">{{ job.title }}</a>
+                                </td>
+                                <td>{{ job.location }}</td>
+                                <td>{{ job.job_type }}</td>
+                                <td>{{ job.posted_date.strftime('%d %b %Y') }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if job.is_active else 'inactive' }}">
+                                        {{ 'Active' if job.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                        <a href="{{ url_for('view_applicants', job_id=job.id) }}" class="btn btn-small">
+                                            👥 View ({{ job.applications|length }})
+                                        </a>
+                                        {% if job.applications|length > 0 %}
+                                            <a href="{{ url_for('rank_candidates', job_id=job.id) }}" class="btn btn-small" style="background: #667eea; color: white;">
+                                                🤖 AI Rank
+                                            </a>
+                                            <a href="{{ url_for('blind_screening', job_id=job.id) }}" class="btn btn-small btn-outline">
+                                                ⚖️ Blind
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="action-buttons">
+                                    <a href="{{ url_for('toggle_job', job_id=job.id) }}" 
+                                       class="btn btn-small btn-outline">
+                                        {{ 'Deactivate' if job.is_active else 'Activate' }}
+                                    </a>
+                                    <a href="{{ url_for('delete_job', job_id=job.id) }}" 
+                                       class="btn btn-small btn-danger"
+                                       onclick="return confirm('Are you sure you want to delete this job? This will also delete all applications.')">
+                                        Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="no-results">
+                <p>📭 You haven't posted any jobs yet.</p>
+                <a href="{{ url_for('post_job') }}" class="btn btn-primary">Post Your First Job</a>
+            </div>
+        {% endif %}
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Request Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Verification Request Form -->
+        <div class="form-container-wide">
+            <h2>🏢 Request Employer Verification</h2>
+            <p class="form-intro">Get verified to build trust with job seekers. Verified employers appear higher in search results and get a "Verified" badge on all job postings.</p>
+            
+            <div class="verification-benefits">
+                <h3>Benefits of Verification:</h3>
+                <ul>
+                    <li>✅ "Verified Employer" badge on all your job postings</li>
+                    <li>✅ Increased trust from job seekers</li>
+                    <li>✅ Higher application rates</li>
+                    <li>✅ Priority placement in job listings</li>
+                    <li>✅ Protection against fraudulent accounts</li>
+                </ul>
+            </div>
+
+            <form method="POST" action="{{ url_for('request_verification') }}" class="verification-form">
+                <div class="form-group">
+                    <label for="company_name">Company Name *</label>
+                    <input type="text" name="company_name" id="company_name" required 
+                           placeholder="e.g., TechCorp Zimbabwe Ltd"
+                           value="{{ user.company_name or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="company_registration">Company Registration Number *</label>
+                    <input type="text" name="company_registration" id="company_registration" required 
+                           placeholder="e.g., ZW12345678"
+                           value="{{ user.company_registration or '' }}">
+                    <small>Your official business registration number from the Companies Registry</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="company_address">Company Address *</label>
+                    <textarea name="company_address" id="company_address" rows="3" required 
+                              placeholder="Full physical address of your company">{{ user.company_address or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="company_phone">Company Phone Number *</label>
+                    <input type="text" name="company_phone" id="company_phone" required 
+                           placeholder="e.g., +263 77 123 4567"
+                           value="{{ user.company_phone or '' }}">
+                </div>
+
+                <div class="verification-note">
+                    <p>📋 <strong>Note:</strong> Our admin team will review your submission within 1-2 business days. You will receive a notification once your account is verified.</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-large">📤 Submit Verification Request</button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+        
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

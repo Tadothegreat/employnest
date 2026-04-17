@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Applicants for {{ job.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h2>👥 Applicants for: {{ job.title }}</h2>
+            <p>{{ job.company }} - {{ job.location }}</p>
+        </div>
+
+        <!-- Applicants List -->
+        {% if applications %}
+            <div class="applicants-count">
+                <p><strong>{{ applications|length }}</strong> applicant(s) total</p>
+            </div>
+            
+            <div class="applicants-list">
+                {% for app in applications %}
+                    <div class="applicant-card">
+                        <div class="applicant-header">
+                            <div>
+                                <h3>
+    {{ app.applicant.name }}
+    <a href="{{ url_for('view_applicant_profile', applicant_id=app.applicant.id) }}" 
+       class="btn btn-small btn-outline" style="margin-left: 10px;">
+        View Profile
+    </a>
+</h3>
+                                <p class="applicant-email">{{ app.applicant.email }}</p>
+                            </div>
+                            <span class="application-status {{ app.status }}">
+                                {{ app.status | title }}
+                            </span>
+                        </div>
+                        
+                        <div class="applicant-meta">
+                            <span>📅 Applied: {{ app.applied_date.strftime('%d %B %Y at %H:%M') }}</span>
+                        </div>
+                        
+                        {% if app.cover_letter %}
+                            <div class="cover-letter">
+                                <h4>Cover Letter:</h4>
+                                <p>{{ app.cover_letter }}</p>
+                            </div>
+                        {% else %}
+                            <p class="no-cover-letter">📝 No cover letter provided</p>
+                        {% endif %}
+                        
+                        <div class="applicant-actions">
+                            <span class="placeholder-text">(Status update and messaging features coming soon)</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-results">
+                <p>📭 No applicants yet for this position.</p>
+            </div>
+        {% endif %}
+        
+        <div style="margin-top: 30px;">
+            <a href="{{ url_for('my_jobs') }}" class="btn btn-outline">← Back to My Jobs</a>
+            <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-outline">View Job Details</a>
+        </div>
+    </div>
+</body>
+</html>

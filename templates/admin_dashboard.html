@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar admin-navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none;">
+                <h1>🐦 EmployNest Admin</h1>
+            </a>
+            <div class="nav-links">
+                <span class="admin-badge">Administrator</span>
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Admin Dashboard Content -->
+        <div class="dashboard-content">
+            <h2>🔧 Administration Panel</h2>
+            
+            <!-- Stats Summary -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3>{{ total_users }}</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🏢</div>
+                    <div class="stat-content">
+                        <h3>{{ total_employers }}</h3>
+                        <p>Employers</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">💼</div>
+                    <div class="stat-content">
+                        <h3>{{ total_seekers }}</h3>
+                        <p>Job Seekers</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <h3>{{ total_jobs }}</h3>
+                        <p>Active Jobs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Admin Actions -->
+            <div class="card" style="margin-top: 30px;">
+                <h3>✅ Pending Verifications</h3>
+                
+                {% if pending_verifications > 0 %}
+                    <p style="margin-bottom: 20px;">
+                        <strong>{{ pending_verifications }}</strong> employer(s) waiting for verification.
+                    </p>
+                    <a href="{{ url_for('admin_verifications') }}" class="btn btn-primary btn-large">
+                        Review Verification Requests
+                    </a>
+                {% else %}
+                    <p style="color: #28a745; margin-bottom: 20px;">
+                        ✅ No pending verification requests.
+                    </p>
+                    <a href="{{ url_for('admin_verifications') }}" class="btn btn-outline">
+                        View Pending
+                    </a>
+                {% endif %}
+                
+                <!-- View All Employers Button -->
+                <div style="margin-top: 20px;">
+                    <a href="{{ url_for('admin_all_employers') }}" class="btn btn-outline">
+                        🏢 View All Employers
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card" style="margin-top: 20px;">
+                <h3>📊 Platform Overview</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+                    <div>
+                        <p><strong>Total Employers:</strong> {{ total_employers }}</p>
+                        <p><strong>Verified Employers:</strong> {{ verified_employers }}</p>
+                        <p><strong>Pending Verification:</strong> {{ pending_verifications }}</p>
+                    </div>
+                    <div>
+                        <p><strong>Total Job Seekers:</strong> {{ total_seekers }}</p>
+                        <p><strong>Total Jobs:</strong> {{ total_jobs }}</p>
+                        <p><strong>Platform Status:</strong> <span style="color: #28a745;">🟢 Operational</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back Link -->
+            <p style="text-align: center; margin-top: 30px;">
+                <a href="{{ url_for('home') }}">← Back to Home</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

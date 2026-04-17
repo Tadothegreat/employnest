@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Skill Gap Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h2>📊 Skill Gap Analysis</h2>
+                <p><strong>{{ job.title }}</strong> at {{ job.company }}</p>
+            </div>
+            <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-outline">← Back to Job</a>
+        </div>
+
+        <!-- Match Overview -->
+        <div class="match-overview-card">
+            <div class="match-percentage-circle">
+                <div class="percentage-number">{{ "%.0f"|format(analysis.match_percentage) }}%</div>
+                <div class="percentage-label">Skill Match</div>
+            </div>
+            <div class="match-summary">
+                <h3>Your Skill Match</h3>
+                <p>You have <strong>{{ analysis.matched_skills|length }}</strong> out of <strong>{{ analysis.total_required }}</strong> required skills for this position.</p>
+                {% if analysis.match_percentage >= 70 %}
+                    <p class="match-message good">✅ You're a strong match for this role!</p>
+                {% elif analysis.match_percentage >= 40 %}
+                    <p class="match-message medium">📈 You have a solid foundation. Consider developing the missing skills below.</p>
+                {% else %}
+                    <p class="match-message low">📚 This role requires skills you don't have yet. See recommendations below.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Skills Breakdown -->
+        <div class="skills-breakdown-grid">
+            <!-- Matched Skills -->
+            <div class="skills-card matched">
+                <h3>✅ Skills You Have</h3>
+                <p class="skills-count">{{ analysis.matched_skills|length }} matched skills</p>
+                {% if analysis.matched_skills %}
+                    <div class="skills-tag-container">
+                        {% for skill in analysis.matched_skills %}
+                            <span class="skill-tag matched-tag">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="no-skills">None of your skills match this job's requirements.</p>
+                {% endif %}
+            </div>
+
+            <!-- Missing Skills -->
+            <div class="skills-card missing">
+                <h3>⚠️ Skills to Develop</h3>
+                <p class="skills-count">{{ analysis.missing_skills|length }} skills needed</p>
+                {% if analysis.missing_skills %}
+                    <div class="skills-tag-container">
+                        {% for skill in analysis.missing_skills %}
+                            <span class="skill-tag missing-tag">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="learning-resources">
+                        <p><strong>📖 Learning Resources:</strong></p>
+                        <ul>
+                            <li>Online courses on Coursera, Udemy, or LinkedIn Learning</li>
+                            <li>Free tutorials on YouTube and freeCodeCamp</li>
+                            <li>Practice projects to build your portfolio</li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <p class="no-skills">🎉 You have all the required skills!</p>
+                {% endif %}
+            </div>
+
+            <!-- Extra Skills -->
+            {% if analysis.extra_skills %}
+                <div class="skills-card extra">
+                    <h3>💪 Additional Skills You Have</h3>
+                    <p class="skills-count">{{ analysis.extra_skills|length }} bonus skills</p>
+                    <div class="skills-tag-container">
+                        {% for skill in analysis.extra_skills %}
+                            <span class="skill-tag extra-tag">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                    <p class="extra-note">These skills aren't required but make you a stronger candidate!</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Recommendations -->
+        <div class="recommendations-section">
+            <h3>🚀 Next Steps</h3>
+            <div class="recommendation-cards">
+                {% if analysis.missing_skills %}
+                    <div class="rec-card">
+                        <div class="rec-icon">📚</div>
+                        <h4>Develop Missing Skills</h4>
+                        <p>Focus on learning the skills listed above to increase your match percentage.</p>
+                        <a href="{{ url_for('skill_recommendations') }}" class="btn btn-outline">View Market Skills</a>
+                    </div>
+                {% endif %}
+                
+                <div class="rec-card">
+                    <div class="rec-icon">📝</div>
+                    <h4>Update Your Profile</h4>
+                    <p>Add any skills you have but haven't listed in your profile.</p>
+                    <a href="{{ url_for('profile') }}" class="btn btn-primary">Edit Profile</a>
+                </div>
+                
+                <div class="rec-card">
+                    <div class="rec-icon">💼</div>
+                    <h4>Apply Anyway</h4>
+                    <p>Employers value potential! A strong cover letter can make a difference.</p>
+                    <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-outline">View Job & Apply</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Insight -->
+        <div class="ai-insight-card">
+            <div class="insight-icon">🤖</div>
+            <div class="insight-content">
+                <h4>AI Insight</h4>
+                <p>
+                    {% if analysis.match_percentage >= 70 %}
+                        Based on your profile, you're likely to succeed in this role. Your skills align well with the job requirements.
+                    {% elif analysis.match_percentage >= 40 %}
+                        You have a good foundation. With some additional learning in the missing skill areas, you could be a strong candidate.
+                    {% else %}
+                        This role requires skills that differ from your current profile. Consider whether this aligns with your career goals.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('job_detail', job_id=job.id) }}">← Back to Job Details</a>
+        </p>
+    </div>
+</body>
+</html>

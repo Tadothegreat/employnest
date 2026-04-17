@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Create Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('login') }}" class="btn btn-outline">Sign In</a>
+            </div>
+        </nav>
+
+        <!-- Registration Form -->
+        <div class="form-container">
+            <h2>Create Your Account</h2>
+            <p class="form-intro">Join EmployNest and start your journey today</p>
+            
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="form-group">
+                    <label for="name">Full Name *</label>
+                    <input type="text" name="name" id="name" placeholder="e.g., John Doe" required>
+                    <small>Letters and spaces only, at least 2 characters</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" name="email" id="email" placeholder="you@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone_number">Phone Number (Optional)</label>
+                    <input type="tel" name="phone_number" id="phone_number" placeholder="e.g., +263 77 123 4567">
+                    <small>We'll send a verification code to this number</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" name="password" id="password" placeholder="••••••••" required>
+                    <small>At least 6 characters. Only letters, numbers, and @ . _ - allowed</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">I am a *</label>
+                    <select name="role" id="role" required>
+                        <option value="">Select your role</option>
+                        <option value="job_seeker">💼 Job Seeker - I want to find work</option>
+                        <option value="employer">🏢 Employer - I want to hire talent</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <p style="font-size: 13px; color: #666; margin-top: 10px;">
+                        By registering, you agree to our Terms of Service and Privacy Policy.
+                    </p>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+            </form>
+            
+            <p style="text-align: center; margin-top: 20px;">
+                Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
+            </p>
+            
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="{{ url_for('home') }}">← Back to Home</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

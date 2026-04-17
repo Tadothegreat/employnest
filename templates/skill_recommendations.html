@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Skill Recommendations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h2>📈 In-Demand Skills in Zimbabwe</h2>
+            <p>Based on current job market analysis</p>
+        </div>
+
+        <!-- Current Skills -->
+        {% if user.skills %}
+            <div class="current-skills-card">
+                <h3>✅ Your Current Skills</h3>
+                <div class="skills-tag-container">
+                    {% for skill in user.skills.split(',') %}
+                        <span class="skill-tag current-tag">{{ skill.strip() }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Recommended Skills -->
+        <div class="recommended-skills-section">
+            <h3>🎯 Recommended Skills to Learn</h3>
+            <p class="section-desc">These skills are frequently requested by employers and can increase your job opportunities.</p>
+            
+            {% if recommended_skills %}
+                <div class="recommended-skills-grid">
+                    {% for skill in recommended_skills %}
+                        <div class="recommended-skill-card">
+                            <div class="skill-rank">#{{ loop.index }}</div>
+                            <div class="skill-name">{{ skill }}</div>
+                            <div class="skill-demand">
+                                <span class="demand-bar">
+                                    <span class="demand-fill" style="width: {{ 100 - (loop.index0 * 8) }}%;"></span>
+                                </span>
+                                <span class="demand-label">
+                                    {% if loop.index <= 3 %}
+                                        High Demand
+                                    {% elif loop.index <= 6 %}
+                                        Medium Demand
+                                    {% else %}
+                                        Growing Demand
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <button class="btn btn-small btn-outline add-skill-btn" onclick="addSkillToProfile('{{ skill }}')">
+                                ➕ Add to Profile
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-results-small">
+                    <p>No skill recommendations available at this time.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Learning Resources -->
+        <div class="learning-resources-section">
+            <h3>📚 Where to Learn These Skills</h3>
+            <div class="resources-grid">
+                <div class="resource-card">
+                    <div class="resource-icon">🎓</div>
+                    <h4>Coursera</h4>
+                    <p>University-level courses from top institutions worldwide.</p>
+                    <a href="https://www.coursera.org" target="_blank" class="btn btn-outline btn-small">Visit →</a>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">📹</div>
+                    <h4>Udemy</h4>
+                    <p>Affordable courses on virtually any skill.</p>
+                    <a href="https://www.udemy.com" target="_blank" class="btn btn-outline btn-small">Visit →</a>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">💻</div>
+                    <h4>freeCodeCamp</h4>
+                    <p>Free coding and tech skills curriculum.</p>
+                    <a href="https://www.freecodecamp.org" target="_blank" class="btn btn-outline btn-small">Visit →</a>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">📱</div>
+                    <h4>LinkedIn Learning</h4>
+                    <p>Professional development courses.</p>
+                    <a href="https://www.linkedin.com/learning" target="_blank" class="btn btn-outline btn-small">Visit →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Local Resources -->
+        <div class="local-resources-card">
+            <h3>🇿🇼 Zimbabwe Local Resources</h3>
+            <ul class="local-resources-list">
+                <li>📌 <strong>Harare Institute of Technology</strong> - Technology and innovation courses</li>
+                <li>📌 <strong>National University of Science and Technology (NUST)</strong> - Continuing education programs</li>
+                <li>📌 <strong>Muzinda Hub</strong> - Digital skills training in Harare</li>
+                <li>📌 <strong>TechVillage Zimbabwe</strong> - Tech community and workshops</li>
+                <li>📌 <strong>Impact Hub Harare</strong> - Entrepreneurship and skills development</li>
+            </ul>
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('profile') }}">← Back to Profile</a>
+        </p>
+    </div>
+
+    <script>
+    function addSkillToProfile(skill) {
+        // Redirect to profile page with skill pre-filled
+        window.location.href = "{{ url_for('profile') }}?add_skill=" + encodeURIComponent(skill);
+    }
+    </script>
+</body>
+</html>

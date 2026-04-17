@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('profile') }}" class="btn btn-outline">👤 Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <h2>Dashboard</h2>
+            
+            {% if session.role == 'employer' %}
+                <!-- ========== EMPLOYER DASHBOARD ========== -->
+                
+                <!-- Verification Status Card -->
+                <div class="card verification-card">
+                    <h3>🏢 Employer Verification Status</h3>
+                    
+                    {% if user.verified %}
+                        <div class="verification-status verified">
+                            <span class="badge verified-badge">✅ Verified Employer</span>
+                            <p>Your company has been verified! Job seekers will see the verified badge on your job postings.</p>
+                            <p class="verification-date">Verified on: {{ user.verification_date.strftime('%d %B %Y') if user.verification_date else 'N/A' }}</p>
+                        </div>
+                    {% elif user.verification_requested %}
+                        <div class="verification-status pending">
+                            <span class="badge pending-badge">⏳ Verification Pending</span>
+                            <p>Your verification request is being reviewed by our admin team. This usually takes 1-2 business days.</p>
+                        </div>
+                    {% else %}
+                        <div class="verification-status not-requested">
+                            <span class="badge not-verified-badge">⚠️ Not Verified</span>
+                            <p>Get verified to build trust with job seekers and display a "Verified Employer" badge on your job postings.</p>
+                            <a href="{{ url_for('request_verification') }}" class="btn btn-primary">Request Verification</a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Dashboard Actions -->
+                <div class="dashboard-actions">
+                    <a href="{{ url_for('post_job') }}" class="btn btn-primary btn-large">➕ Post a New Job</a>
+                    <a href="{{ url_for('my_jobs') }}" class="btn btn-outline btn-large">📋 Manage My Jobs</a>
+                </div>
+                
+                <!-- Quick Tips -->
+                <div class="card">
+                    <h3>👔 Employer Quick Tips</h3>
+                    <ul>
+                        <li>Post detailed job descriptions to attract quality candidates</li>
+                        <li>Review applicants from your "Manage My Jobs" section</li>
+                        <li>Keep your job listings updated and active</li>
+                        <li>Verified employers get 3x more applications!</li>
+                    </ul>
+                </div>
+                
+            {% else %}
+                <!-- ========== JOB SEEKER DASHBOARD ========== -->
+                
+                <!-- Dashboard Actions -->
+                <div class="dashboard-actions">
+                    <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary btn-large">🔍 Browse Jobs</a>
+                    <a href="{{ url_for('profile') }}" class="btn btn-outline btn-large">📝 Complete Your Profile</a>
+                    <a href="{{ url_for('skill_recommendations') }}" class="btn btn-outline btn-large">📈 In-Demand Skills</a>
+                </div>
+                
+                <!-- Quick Tips -->
+                <div class="card">
+                    <h3>💼 Job Seeker Quick Tips</h3>
+                    <ul>
+                        <li>Complete your profile to get better job matches</li>
+                        <li>Browse and apply to jobs that match your skills</li>
+                        <li>Check back regularly for new opportunities</li>
+                    </ul>
+                </div>
+                
+                <!-- Recommended Jobs -->
+                <div class="card" style="margin-top: 20px;">
+                    <h3>🎯 Recommended for You</h3>
+                    {% if user.profile_complete %}
+                        <p>Based on your skills and qualifications, we've found jobs that match your profile!</p>
+                        <a href="{{ url_for('recommended_jobs') }}" class="btn btn-primary">View Recommended Jobs</a>
+                    {% else %}
+                        <p>Complete your profile with skills and qualifications to see personalized job recommendations.</p>
+                        <a href="{{ url_for('profile') }}" class="btn btn-outline">Complete Profile</a>
+                        <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">Browse All Jobs</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('home') }}">← Back to Home</a>
+        </p>
+    </div>
+</body>
+</html>

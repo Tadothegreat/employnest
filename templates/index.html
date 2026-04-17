@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Find Your Perfect Job in Zimbabwe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <nav class="navbar-landing">
+                <h1 class="logo">🐦 EmployNest</h1>
+            </nav>
+            
+            <div class="hero-content">
+                <h1 class="hero-title">Find Your Dream Job in <span>Zimbabwe</span></h1>
+                <p class="hero-subtitle">
+                    Connect with verified employers, get intelligent job matches, 
+                    and take the next step in your career journey.
+                </p>
+                <div class="hero-buttons">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">Create Free Account</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-large">I Already Have an Account</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label">Verified Employers</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">AI</span>
+                        <span class="stat-label">Smart Matching</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">Bias in Hiring</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Why Choose EmployNest?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">✅</div>
+                    <h3>Verified Employers</h3>
+                    <p>Every company is authenticated. No more fake job postings or recruitment scams.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered Matching</h3>
+                    <p>Our intelligent engine matches your skills with the right opportunities automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚖️</div>
+                    <h3>Bias-Free Selection</h3>
+                    <p>Data-driven screening that focuses on qualifications, not demographics.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Personalized Recommendations</h3>
+                    <p>Get job suggestions tailored to your unique skills and career interests.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How EmployNest Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Create Your Profile</h3>
+                    <p>Sign up as a job seeker or employer and complete your profile with skills and qualifications.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Get Verified</h3>
+                    <p>Employers undergo verification. Job seekers build trusted profiles with verified credentials.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Connect & Match</h3>
+                    <p>Our AI matches candidates to jobs. Employers find qualified talent faster.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Get Hired</h3>
+                    <p>Apply, interview, and land your next opportunity with confidence.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Transform Your Job Search?</h2>
+            <p>Join thousands of Zimbabweans finding meaningful work through EmployNest.</p>
+            <div class="cta-buttons">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">Sign Up Now - It's Free</a>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-large">Sign In to Your Account</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>🐦 EmployNest</h3>
+                    <p>Verified Employment Connection Platform with Intelligent Talent Matching for Zimbabwe</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <a href="{{ url_for('home') }}">Home</a>
+                    <a href="{{ url_for('register') }}">Sign Up</a>
+                    <a href="{{ url_for('login') }}">Sign In</a>
+                </div>
+                <div class="footer-links">
+                    <h4>For Job Seekers</h4>
+                    <a href="{{ url_for('register') }}">Create Profile</a>
+                    <a href="{{ url_for('browse_jobs') }}">Browse Jobs</a>
+                    <a href="#">Career Resources</a>
+                </div>
+                <div class="footer-links">
+                    <h4>For Employers</h4>
+                    <a href="{{ url_for('register') }}">Post a Job</a>
+                    <a href="#">Pricing</a>
+                    <a href="#">Verification Process</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 EmployNest. All rights reserved. Made with ❤️ for Zimbabwe.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

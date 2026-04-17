@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Browse Jobs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                {% if session.user_id %}
+                    <span>Welcome, {{ session.name }}!</span>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-outline">Sign In</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <!-- Page Title -->
+        <div class="page-header">
+            <h2>Browse Jobs in Zimbabwe</h2>
+            <p>Find your next opportunity from verified employers</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <form method="GET" action="{{ url_for('browse_jobs') }}" class="filter-form">
+                <div class="filter-group">
+                    <label>Category:</label>
+                    <select name="category">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Job Type:</label>
+                    <select name="job_type">
+                        <option value="">All Types</option>
+                        {% for type in job_types %}
+                            <option value="{{ type }}" {% if selected_type == type %}selected{% endif %}>{{ type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Location:</label>
+                    <input type="text" name="location" placeholder="e.g., Harare" value="{{ selected_location }}">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="{{ url_for('browse_jobs') }}" class="btn btn-outline">Clear</a>
+            </form>
+        </div>
+
+        <!-- Job Listings -->
+        <div class="job-listings">
+            {% if jobs %}
+                <p class="result-count">{{ jobs|length }} job(s) found</p>
+                
+                {% for job in jobs %}
+                    <div class="job-card">
+                        <div class="job-card-header">
+                            <h3>
+                                <a href="{{ url_for('job_detail', job_id=job.id) }}">{{ job.title }}</a>
+                            </h3>
+                            <span class="job-type-badge">{{ job.job_type }}</span>
+                        </div>
+                        
+                        <div class="job-company">
+                            <strong>{{ job.company }}</strong>
+                            {% if job.employer.verified %}
+                                <span class="verified-badge-small" title="Verified Employer">✅</span>
+                            {% endif %}
+                            - {{ job.location }}
+                        </div>
+                        
+                        <div class="job-meta">
+                            <span>📁 {{ job.category or 'General' }}</span>
+                            <span>💰 {{ job.salary }}</span>
+                            <span>📅 Posted: {{ job.posted_date.strftime('%d %b %Y') }}</span>
+                        </div>
+                        
+                        <p class="job-description-preview">
+                            {{ job.description[:200] }}{% if job.description|length > 200 %}...{% endif %}
+                        </p>
+                        
+                        <div class="job-card-footer">
+                            <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-primary">View Details</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-results">
+                    <p>😕 No jobs found matching your criteria.</p>
+                    <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">View All Jobs</a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('home') }}">← Back to Home</a>
+        </p>
+    </div>
+</body>
+</html>

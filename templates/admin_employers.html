@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Manage Employers</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar admin-navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none;">
+                <h1>🐦 EmployNest Admin</h1>
+            </a>
+            <div class="nav-links">
+                <span class="admin-badge">Administrator</span>
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h2>🏢 All Employers</h2>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">← Back to Dashboard</a>
+        </div>
+
+        <!-- Pending Verifications -->
+        <div class="admin-section">
+            <h3>⏳ Pending Verification ({{ pending|length }})</h3>
+            
+            {% if pending %}
+                <div class="employer-table-container">
+                    <table class="employer-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Registration #</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employer in pending %}
+                                <tr class="pending-row">
+                                    <td>{{ employer.company_name or 'Not provided' }}</td>
+                                    <td>{{ employer.name }}</td>
+                                    <td>{{ employer.email }}</td>
+                                    <td>{{ employer.company_registration or 'N/A' }}</td>
+                                    <td>{{ employer.company_phone or 'N/A' }}</td>
+                                    <td class="action-buttons">
+                                        <a href="{{ url_for('verify_employer', employer_id=employer.id) }}" 
+                                           class="btn btn-small btn-success"
+                                           onclick="return confirm('Approve verification for {{ employer.company_name or employer.name }}?')">
+                                            ✅ Approve
+                                        </a>
+                                        <a href="{{ url_for('reject_verification', employer_id=employer.id) }}" 
+                                           class="btn btn-small btn-danger"
+                                           onclick="return confirm('Reject verification for {{ employer.company_name or employer.name }}?')">
+                                            ❌ Reject
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="no-data-message">✅ No pending verification requests.</p>
+            {% endif %}
+        </div>
+
+        <!-- Verified Employers -->
+        <div class="admin-section">
+            <h3>✅ Verified Employers ({{ verified|length }})</h3>
+            
+            {% if verified %}
+                <div class="employer-table-container">
+                    <table class="employer-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Registration #</th>
+                                <th>Phone</th>
+                                <th>Verified On</th>
+                                <th>Jobs Posted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employer in verified %}
+                                <tr class="verified-row">
+                                    <td>
+                                        <span class="verified-badge-small">✅</span>
+                                        {{ employer.company_name or employer.name }}
+                                    </td>
+                                    <td>{{ employer.name }}</td>
+                                    <td>{{ employer.email }}</td>
+                                    <td>{{ employer.company_registration or 'N/A' }}</td>
+                                    <td>{{ employer.company_phone or 'N/A' }}</td>
+                                    <td>{{ employer.verification_date.strftime('%d %b %Y') if employer.verification_date else 'N/A' }}</td>
+                                    <td>{{ employer.jobs_posted|length }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="no-data-message">📭 No verified employers yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Unverified Employers -->
+        <div class="admin-section">
+            <h3>⚠️ Unverified Employers ({{ unverified|length }})</h3>
+            <p class="section-note">These employers have not requested verification yet.</p>
+            
+            {% if unverified %}
+                <div class="employer-table-container">
+                    <table class="employer-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Joined</th>
+                                <th>Jobs Posted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employer in unverified %}
+                                <tr class="unverified-row">
+                                    <td>{{ employer.company_name or employer.name }}</td>
+                                    <td>{{ employer.name }}</td>
+                                    <td>{{ employer.email }}</td>
+                                    <td>N/A</td>
+                                    <td>{{ employer.jobs_posted|length }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="no-data-message">✅ All employers are either verified or pending.</p>
+            {% endif %}
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('admin_dashboard') }}">← Back to Admin Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

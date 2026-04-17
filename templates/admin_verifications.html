@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Manage Verifications</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar admin-navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none;">
+                <h1>🐦 EmployNest Admin</h1>
+            </a>
+            <div class="nav-links">
+                <span class="admin-badge">Administrator</span>
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Status Messages -->
+        {% if request.args.get('approved') %}
+            <div class="alert alert-success">
+                ✅ Employer verification approved successfully!
+            </div>
+        {% endif %}
+        {% if request.args.get('rejected') %}
+            <div class="alert alert-info">
+                ℹ️ Verification request rejected.
+            </div>
+        {% endif %}
+
+        <!-- Pending Verifications -->
+        <div class="admin-section">
+            <h2>⏳ Pending Verification Requests</h2>
+            
+            {% if pending %}
+                <div class="verification-list">
+                    {% for employer in pending %}
+                        <div class="verification-request-card">
+                            <div class="request-header">
+                                <div>
+                                    <h3>{{ employer.company_name or 'Company Name Pending' }}</h3>
+                                    <p class="request-meta">Requested: Verification pending review</p>
+                                </div>
+                                <span class="status-badge pending">Pending Review</span>
+                            </div>
+                            
+                            <div class="request-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Contact Person:</span>
+                                    <span>{{ employer.name }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Email:</span>
+                                    <span>{{ employer.email }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Registration Number:</span>
+                                    <span>{{ employer.company_registration or 'Not provided' }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Address:</span>
+                                    <span>{{ employer.company_address or 'Not provided' }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Phone:</span>
+                                    <span>{{ employer.company_phone or 'Not provided' }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="request-actions">
+                                <a href="{{ url_for('verify_employer', employer_id=employer.id) }}" 
+                                   class="btn btn-success"
+                                   onclick="return confirm('Approve verification for {{ employer.company_name or employer.name }}?')">
+                                    ✅ Approve
+                                </a>
+                                <a href="{{ url_for('reject_verification', employer_id=employer.id) }}" 
+                                   class="btn btn-danger"
+                                   onclick="return confirm('Reject verification request from {{ employer.company_name or employer.name }}?')">
+                                    ❌ Reject
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-results-small">
+                    <p>✅ No pending verification requests.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Verified Employers -->
+        <div class="admin-section">
+            <h2>✅ Verified Employers</h2>
+            
+            {% if verified %}
+                <div class="verified-list">
+                    <table class="verified-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Verified On</th>
+                                <th>Jobs Posted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employer in verified %}
+                                <tr>
+                                    <td>
+                                        <span class="verified-badge-small">✅</span>
+                                        {{ employer.company_name or employer.name }}
+                                    </td>
+                                    <td>{{ employer.name }}</td>
+                                    <td>{{ employer.email }}</td>
+                                    <td>{{ employer.verification_date.strftime('%d %b %Y') if employer.verification_date else 'N/A' }}</td>
+                                    <td>{{ employer.jobs_posted|length }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="no-results-small">
+                    <p>📭 No verified employers yet.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('admin_dashboard') }}">← Back to Admin Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

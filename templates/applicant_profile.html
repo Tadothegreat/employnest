@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Applicant Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Applicant Profile -->
+        <div class="profile-view-container">
+            <div class="profile-header">
+                <h2>👤 Applicant Profile</h2>
+                <p>Reviewing: {{ applicant.name }}</p>
+            </div>
+            
+            <div class="profile-section">
+                <h3>📋 Basic Information</h3>
+                <div class="profile-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Full Name:</span>
+                        <span class="info-value">{{ applicant.name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{ applicant.email }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Profile Status:</span>
+                        <span class="info-value">
+                            {% if applicant.profile_complete %}
+                                <span class="badge verified-badge">Complete</span>
+                            {% else %}
+                                <span class="badge pending-badge">Incomplete</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-section">
+                <h3>💪 Skills</h3>
+                {% if applicant.skills %}
+                    <div class="skills-container">
+                        {% for skill in applicant.skills.split(',') %}
+                            <span class="skill-tag">{{ skill.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="no-data">No skills listed.</p>
+                {% endif %}
+            </div>
+            
+            <div class="profile-section">
+                <h3>🎓 Qualifications & Education</h3>
+                {% if applicant.qualifications %}
+                    <div class="qualifications-box">
+                        {{ applicant.qualifications | replace('\n', '<br>') | safe }}
+                    </div>
+                {% else %}
+                    <p class="no-data">No qualifications listed.</p>
+                {% endif %}
+            </div>
+            
+            <div class="profile-section">
+                <h3>⏱️ Experience</h3>
+                <p>
+                    <strong>{{ applicant.experience_years or 0 }}</strong> years of professional experience
+                </p>
+            </div>
+            
+            {% if applicant.resume_filename %}
+                <div class="profile-section">
+                    <h3>📄 Resume</h3>
+                    <a href="{{ url_for('static', filename='uploads/' + applicant.resume_filename) }}" 
+                       class="btn btn-outline" target="_blank">
+                        📥 Download Resume
+                    </a>
+                </div>
+            {% endif %}
+            
+            <div class="profile-actions">
+                <a href="javascript:history.back()" class="btn btn-outline">← Go Back</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

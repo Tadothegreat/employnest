@@ -991,9 +991,6 @@ def skill_gap_analysis(job_id):
                          analysis=gap_analysis)
 
 
-# Blind Screening (Bias-Free) Ranking
-@app.route("/job/<int:job_id>/blind-screening")
-def blind_screening(job_id):
     if "user_id" not in session:
         return redirect("/login")
     if session.get("role") != "employer":

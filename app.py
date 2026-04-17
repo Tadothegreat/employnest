@@ -682,7 +682,7 @@ def toggle_job(job_id):
     return redirect("/my-jobs")
 
 
-# ========== VERIFICATION ROUTES ==========
+# ========== EMPLOYER VERIFICATION ROUTES ==========
 
 # Request verification (employers only)
 @app.route("/request-verification", methods=["GET", "POST"])
@@ -717,6 +717,56 @@ def request_verification():
     
     return render_template("request_verification.html", user=user)
 
+
+# ========== JOB SEEKER VERIFICATION ROUTES ==========
+
+# Request verification (job seekers only)
+@app.route("/request-seeker-verification", methods=["GET", "POST"])
+def request_seeker_verification():
+    if "user_id" not in session:
+        return redirect("/login")
+    if session.get("role") != "job_seeker":
+        return redirect("/dashboard")
+    
+    user = User.query.get(session["user_id"])
+    
+    if request.method == "POST":
+        first_name = request.form.get("first_name", "").strip()
+        surname = request.form.get("surname", "").strip()
+        date_of_birth = request.form.get("date_of_birth", "")
+        national_id = request.form.get("national_id", "").strip()
+        gender = request.form.get("gender", "")
+        religion = request.form.get("religion", "").strip()
+        marital_status = request.form.get("marital_status", "")
+        place_of_birth = request.form.get("place_of_birth", "").strip()
+        home_address = request.form.get("home_address", "").strip()
+        contact_phone = request.form.get("contact_phone", "").strip()
+        
+        # Validation
+        if not all([first_name, surname, date_of_birth, national_id, gender, home_address]):
+            return "All required fields must be filled. <a href='/request-seeker-verification'>Go Back</a>"
+        
+        # Update user with personal details
+        user.first_name = first_name
+        user.surname = surname
+        user.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+        user.national_id = national_id
+        user.gender = gender
+        user.religion = religion
+        user.marital_status = marital_status
+        user.place_of_birth = place_of_birth
+        user.home_address = home_address
+        user.contact_phone = contact_phone
+        user.seeker_verification_requested = True
+        
+        db.session.commit()
+        
+        return redirect("/dashboard?verification_requested=1")
+    
+    return render_template("request_seeker_verification.html", user=user)
+
+
+# ========== ADMIN ROUTES ==========
 
 # Admin Panel - Pending Verifications
 @app.route("/admin/verifications")
@@ -753,7 +803,7 @@ def admin_all_employers():
                          pending=pending_employers)
 
 
-# Admin - Approve Verification
+# Admin - Approve Employer Verification
 @app.route("/admin/verify/<int:employer_id>")
 @admin_required
 def verify_employer(employer_id):
@@ -771,7 +821,7 @@ def verify_employer(employer_id):
     return redirect("/admin/verifications?approved=1")
 
 
-# Admin - Reject Verification
+# Admin - Reject Employer Verification
 @app.route("/admin/reject/<int:employer_id>")
 @admin_required
 def reject_verification(employer_id):
@@ -786,6 +836,61 @@ def reject_verification(employer_id):
     db.session.commit()
     
     return redirect("/admin/verifications?rejected=1")
+
+
+# Admin - View Pending Job Seeker Verifications
+@app.route("/admin/seeker-verifications")
+@admin_required
+def admin_seeker_verifications():
+    pending_seekers = User.query.filter_by(
+        role='job_seeker',
+        seeker_verification_requested=True,
+        seeker_verified=False
+    ).all()
+    
+    verified_seekers = User.query.filter_by(
+        role='job_seeker',
+        seeker_verified=True
+    ).all()
+    
+    return render_template("admin_seeker_verifications.html",
+                         pending=pending_seekers,
+                         verified=verified_seekers)
+
+
+# Admin - Approve Job Seeker Verification
+@app.route("/admin/verify-seeker/<int:seeker_id>")
+@admin_required
+def verify_seeker(seeker_id):
+    seeker = User.query.get_or_404(seeker_id)
+    
+    if seeker.role != 'job_seeker':
+        return "Invalid user type."
+    
+    seeker.seeker_verified = True
+    seeker.seeker_verification_date = datetime.utcnow()
+    seeker.seeker_verified_by = session["user_id"]
+    
+    db.session.commit()
+    
+    return redirect("/admin/seeker-verifications?approved=1")
+
+
+# Admin - Reject Job Seeker Verification
+@app.route("/admin/reject-seeker/<int:seeker_id>")
+@admin_required
+def reject_seeker_verification(seeker_id):
+    seeker = User.query.get_or_404(seeker_id)
+    
+    if seeker.role != 'job_seeker':
+        return "Invalid user type."
+    
+    seeker.seeker_verification_requested = False
+    seeker.seeker_verified = False
+    
+    db.session.commit()
+    
+    return redirect("/admin/seeker-verifications?rejected=1")
 
 
 # Admin Dashboard
@@ -806,6 +911,11 @@ def admin_dashboard():
         role='employer',
         verified=True
     ).count()
+    pending_seeker_verifications = User.query.filter_by(
+        role='job_seeker',
+        seeker_verification_requested=True,
+        seeker_verified=False
+    ).count()
     
     return render_template("admin_dashboard.html",
                          total_users=total_users,
@@ -813,7 +923,8 @@ def admin_dashboard():
                          total_seekers=total_seekers,
                          total_jobs=total_jobs,
                          pending_verifications=pending_verifications,
-                         verified_employers=verified_employers)
+                         verified_employers=verified_employers,
+                         pending_seeker_verifications=pending_seeker_verifications)
 
 
 # ========== PROFILE ROUTES ==========
@@ -828,7 +939,23 @@ def profile():
     
     if request.method == "POST":
         if user.role == 'job_seeker':
-            # Update job seeker profile
+            # Update personal details
+            user.first_name = request.form.get("first_name", "").strip()
+            user.surname = request.form.get("surname", "").strip()
+            
+            dob = request.form.get("date_of_birth", "")
+            if dob:
+                user.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
+            
+            user.national_id = request.form.get("national_id", "").strip()
+            user.gender = request.form.get("gender", "")
+            user.religion = request.form.get("religion", "").strip()
+            user.marital_status = request.form.get("marital_status", "")
+            user.place_of_birth = request.form.get("place_of_birth", "").strip()
+            user.home_address = request.form.get("home_address", "").strip()
+            user.contact_phone = request.form.get("contact_phone", "").strip()
+            
+            # Update skills and qualifications
             skills = request.form.get("skills", "").strip()
             qualifications = request.form.get("qualifications", "").strip()
             experience_years = request.form.get("experience_years", "")
@@ -861,139 +988,4 @@ def profile():
             if company_phone:
                 user.company_phone = company_phone
             if company_address:
-                user.company_address = company_address
-        
-        db.session.commit()
-        return redirect("/profile?updated=1")
-    
-    return render_template("profile.html", user=user)
-
-
-# View public profile (for employers to see applicants)
-@app.route("/applicant/<int:applicant_id>")
-def view_applicant_profile(applicant_id):
-    if "user_id" not in session:
-        return redirect("/login")
-    
-    # Only employers can view applicant profiles
-    if session.get("role") != "employer":
-        return redirect("/dashboard")
-    
-    applicant = User.query.get_or_404(applicant_id)
-    
-    # Ensure the applicant is a job seeker
-    if applicant.role != 'job_seeker':
-        return "Invalid user type."
-    
-    return render_template("applicant_profile.html", applicant=applicant)
-
-
-# ========== AI MATCHING ROUTES ==========
-
-# Recommended Jobs for Job Seeker
-@app.route("/recommended-jobs")
-def recommended_jobs():
-    if "user_id" not in session:
-        return redirect("/login")
-    if session.get("role") != "job_seeker":
-        return redirect("/dashboard")
-    
-    user = User.query.get(session["user_id"])
-    
-    # Get all active jobs
-    all_jobs = Job.query.filter_by(is_active=True).all()
-    
-    # Get recommendations
-    recommended_job_ids = get_job_recommendations(user, all_jobs, top_n=10)
-    
-    # Fetch the actual job objects in the recommended order
-    recommended_jobs = []
-    job_dict = {job.id: job for job in all_jobs}
-    
-    for job_id in recommended_job_ids:
-        if job_id in job_dict:
-            recommended_jobs.append(job_dict[job_id])
-    
-    # Get jobs that user hasn't applied to
-    applied_job_ids = [app.job_id for app in user.applications]
-    new_jobs = [job for job in all_jobs if job.id not in applied_job_ids and job.id not in recommended_job_ids]
-    
-    return render_template("recommended_jobs.html",
-                         recommended_jobs=recommended_jobs,
-                         new_jobs=new_jobs[:5],
-                         user=user)
-
-
-# AI Rank Candidates for a Job (employers only)
-@app.route("/job/<int:job_id>/rank-candidates")
-def rank_candidates(job_id):
-    if "user_id" not in session:
-        return redirect("/login")
-    if session.get("role") != "employer":
-        return redirect("/dashboard")
-    
-    job = Job.query.get_or_404(job_id)
-    
-    # Check ownership
-    if job.employer_id != session["user_id"]:
-        return "You don't have permission to view this."
-    
-    # Get all applicants for this job
-    applications = Application.query.filter_by(job_id=job_id).all()
-    candidates = [app.applicant for app in applications]
-    
-    # Get AI rankings with detailed results
-    ranked_results = get_top_candidates(job, candidates, top_n=len(candidates))
-    
-    # Build ranked applications list from the detailed results
-    ranked_applications = []
-    candidate_dict = {c.id: c for c in candidates}
-    app_dict = {app.applicant_id: app for app in applications}
-    
-    for result in ranked_results:
-        candidate_id = result['candidate_id']
-        if candidate_id in candidate_dict:
-            ranked_applications.append({
-                'applicant': candidate_dict[candidate_id],
-                'application': app_dict[candidate_id],
-                'match_score': result['score'],
-                'text_score': result['text_score'],
-                'skill_score': result['skill_score'],
-                'matched_skills': result['matched_skills'],
-                'missing_skills': result['missing_skills'],
-                'total_required': result['total_required_skills']
-            })
-    
-    return render_template("ranked_candidates.html",
-                         job=job,
-                         ranked_applications=ranked_applications)
-
-
-# ========== ADVANCED AI ROUTES ==========
-
-# Skill Gap Analysis for a Job
-@app.route("/job/<int:job_id>/skill-gap")
-def skill_gap_analysis(job_id):
-    if "user_id" not in session:
-        return redirect("/login")
-    if session.get("role") != "job_seeker":
-        return redirect("/dashboard")
-    
-    user = User.query.get(session["user_id"])
-    job = Job.query.get_or_404(job_id)
-    
-    # Get skill gap analysis
-    gap_analysis = matcher.get_skill_gap_analysis(user, job)
-    
-    return render_template("skill_gap.html", 
-                         job=job, 
-                         user=user, 
-                         analysis=gap_analysis)
-
-
-    if "user_id" not in session:
-        return redirect("/login")
-    if session.get("role") != "employer":
-        return redirect("/dashboard")
-    
-    job = Job.query.get_or_
+                user

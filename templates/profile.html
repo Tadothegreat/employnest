@@ -33,7 +33,29 @@
             
             {% if user.role == 'job_seeker' %}
                 <!-- ========== JOB SEEKER PROFILE ========== -->
-                <p class="form-intro">Complete your profile to get better job matches and recommendations.</p>
+                
+                <!-- Verification Status -->
+                <div class="card verification-card" style="margin-bottom: 25px;">
+                    <h3>🛡️ Account Verification Status</h3>
+                    {% if user.seeker_verified %}
+                        <div class="verification-status verified">
+                            <span class="badge verified-badge">✅ Verified Job Seeker</span>
+                            <p>Your identity has been verified! Employers will see you as a verified candidate.</p>
+                            <p class="verification-date">Verified on: {{ user.seeker_verification_date.strftime('%d %B %Y') if user.seeker_verification_date else 'N/A' }}</p>
+                        </div>
+                    {% elif user.seeker_verification_requested %}
+                        <div class="verification-status pending">
+                            <span class="badge pending-badge">⏳ Verification Pending</span>
+                            <p>Your verification request is being reviewed by our admin team.</p>
+                        </div>
+                    {% else %}
+                        <div class="verification-status not-requested">
+                            <span class="badge not-verified-badge">⚠️ Not Verified</span>
+                            <p>Get verified to increase your chances of being hired!</p>
+                            <a href="{{ url_for('request_seeker_verification') }}" class="btn btn-primary">Verify Your Identity</a>
+                        </div>
+                    {% endif %}
+                </div>
                 
                 <!-- Profile Completion Status -->
                 {% if user.profile_complete %}
@@ -47,92 +69,128 @@
                 {% endif %}
                 
                 <form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data" class="profile-form">
-                    <div class="form-group">
-                        <label for="skills">Skills *</label>
-                        <div class="skills-input-container">
-    <textarea name="skills" id="skills" rows="3" 
-              placeholder="e.g., Python, Project Management, Customer Service, Data Analysis"
-              oninput="showSkillSuggestions(this.value)">{{ user.skills or '' }}</textarea>
-    <div id="skill-suggestions" class="skill-suggestions-dropdown"></div>
-    <small>Separate skills with commas. Click suggestions to add.</small>
-</div>
-
-<script>
-async function showSkillSuggestions(input) {
-    const lastSkill = input.split(',').pop().trim();
-    const suggestionsDiv = document.getElementById('skill-suggestions');
-    
-    if (lastSkill.length < 2) {
-        suggestionsDiv.style.display = 'none';
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/skill-suggestions?q=${encodeURIComponent(lastSkill)}`);
-        const data = await response.json();
-        
-        if (data.suggestions.length > 0) {
-            suggestionsDiv.innerHTML = data.suggestions.map(skill => 
-                `<div class="suggestion-item" onclick="addSkill('${skill}')">${skill}</div>`
-            ).join('');
-            suggestionsDiv.style.display = 'block';
-        } else {
-            suggestionsDiv.style.display = 'none';
-        }
-    } catch (e) {
-        suggestionsDiv.style.display = 'none';
-    }
-}
-
-function addSkill(skill) {
-    const textarea = document.getElementById('skills');
-    let skills = textarea.value.split(',').map(s => s.trim()).filter(s => s);
-    
-    // Remove the last partial skill
-    skills.pop();
-    
-    // Add the selected skill
-    skills.push(skill);
-    
-    // Update textarea
-    textarea.value = skills.join(', ') + (skills.length > 0 ? ', ' : '');
-    
-    // Hide suggestions
-    document.getElementById('skill-suggestions').style.display = 'none';
-    
-    // Focus back on textarea
-    textarea.focus();
-}
-
-// Hide suggestions when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.skills-input-container')) {
-        document.getElementById('skill-suggestions').style.display = 'none';
-    }
-});
-</script>
-                        <small>Separate skills with commas</small>
-                    </div>
                     
-                    <div class="form-group">
-                        <label for="qualifications">Qualifications & Education *</label>
-                        <textarea name="qualifications" id="qualifications" rows="4" 
-                                  placeholder="e.g., Bachelor's Degree in Computer Science, Diploma in Business Management">{{ user.qualifications or '' }}</textarea>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="experience_years">Years of Experience</label>
-                            <input type="number" name="experience_years" id="experience_years" 
-                                   min="0" max="50" value="{{ user.experience_years or 0 }}">
+                    <!-- Personal Details Section -->
+                    <div class="profile-section">
+                        <h3>📋 Personal Details</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first_name">First Name(s) *</label>
+                                <input type="text" name="first_name" id="first_name" 
+                                       value="{{ user.first_name or '' }}" placeholder="e.g., John">
+                            </div>
+                            <div class="form-group">
+                                <label for="surname">Surname *</label>
+                                <input type="text" name="surname" id="surname" 
+                                       value="{{ user.surname or '' }}" placeholder="e.g., Doe">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="date_of_birth">Date of Birth *</label>
+                                <input type="date" name="date_of_birth" id="date_of_birth" 
+                                       value="{{ user.date_of_birth.strftime('%Y-%m-%d') if user.date_of_birth else '' }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="national_id">National ID *</label>
+                                <input type="text" name="national_id" id="national_id" 
+                                       value="{{ user.national_id or '' }}" placeholder="e.g., 63-1234567A12">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="gender">Gender *</label>
+                                <select name="gender" id="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                                    <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                                    <option value="Other" {% if user.gender == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="marital_status">Marital Status</label>
+                                <select name="marital_status" id="marital_status">
+                                    <option value="">Select Status</option>
+                                    <option value="Single" {% if user.marital_status == 'Single' %}selected{% endif %}>Single</option>
+                                    <option value="Married" {% if user.marital_status == 'Married' %}selected{% endif %}>Married</option>
+                                    <option value="Divorced" {% if user.marital_status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                                    <option value="Widowed" {% if user.marital_status == 'Widowed' %}selected{% endif %}>Widowed</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="religion">Religion</label>
+                                <input type="text" name="religion" id="religion" 
+                                       value="{{ user.religion or '' }}" placeholder="e.g., Christian">
+                            </div>
+                            <div class="form-group">
+                                <label for="place_of_birth">Place of Birth</label>
+                                <input type="text" name="place_of_birth" id="place_of_birth" 
+                                       value="{{ user.place_of_birth or '' }}" placeholder="e.g., Harare">
+                            </div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="resume">Upload Resume (PDF, DOC, DOCX)</label>
-                            <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx">
-                            {% if user.resume_filename %}
-                                <small>Current resume: {{ user.resume_filename }}</small>
-                            {% endif %}
+                            <label for="home_address">Home Address *</label>
+                            <textarea name="home_address" id="home_address" rows="2" 
+                                      placeholder="Your full residential address">{{ user.home_address or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email_display">Email Address</label>
+                                <input type="email" value="{{ user.email }}" disabled style="background: #f5f5f5;">
+                                <small>Email cannot be changed</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="contact_phone">Contact Phone *</label>
+                                <input type="tel" name="contact_phone" id="contact_phone" 
+                                       value="{{ user.contact_phone or user.phone_number or '' }}" 
+                                       placeholder="e.g., +263 77 123 4567">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Professional Details Section -->
+                    <div class="profile-section">
+                        <h3>💼 Professional Details</h3>
+                        
+                        <div class="form-group">
+                            <label for="skills">Skills *</label>
+                            <div class="skills-input-container">
+                                <textarea name="skills" id="skills" rows="3" 
+                                          placeholder="e.g., Python, Project Management, Customer Service, Data Analysis"
+                                          oninput="showSkillSuggestions(this.value)">{{ user.skills or '' }}</textarea>
+                                <div id="skill-suggestions" class="skill-suggestions-dropdown"></div>
+                            </div>
+                            <small>Separate skills with commas. Click suggestions to add.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="qualifications">Qualifications & Education *</label>
+                            <textarea name="qualifications" id="qualifications" rows="4" 
+                                      placeholder="e.g., Bachelor's Degree in Computer Science, Diploma in Business Management">{{ user.qualifications or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="experience_years">Years of Experience</label>
+                                <input type="number" name="experience_years" id="experience_years" 
+                                       min="0" max="50" value="{{ user.experience_years or 0 }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="resume">Upload Resume (PDF, DOC, DOCX)</label>
+                                <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx">
+                                {% if user.resume_filename %}
+                                    <small>Current resume: {{ user.resume_filename }}</small>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                     
@@ -195,5 +253,60 @@ document.addEventListener('click', function(e) {
             <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
         </p>
     </div>
+
+    <script>
+    async function showSkillSuggestions(input) {
+        const lastSkill = input.split(',').pop().trim();
+        const suggestionsDiv = document.getElementById('skill-suggestions');
+        
+        if (lastSkill.length < 2) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/skill-suggestions?q=${encodeURIComponent(lastSkill)}`);
+            const data = await response.json();
+            
+            if (data.suggestions.length > 0) {
+                suggestionsDiv.innerHTML = data.suggestions.map(skill => 
+                    `<div class="suggestion-item" onclick="addSkill('${skill}')">${skill}</div>`
+                ).join('');
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        } catch (e) {
+            suggestionsDiv.style.display = 'none';
+        }
+    }
+
+    function addSkill(skill) {
+        const textarea = document.getElementById('skills');
+        let skills = textarea.value.split(',').map(s => s.trim()).filter(s => s);
+        
+        // Remove the last partial skill
+        skills.pop();
+        
+        // Add the selected skill
+        skills.push(skill);
+        
+        // Update textarea
+        textarea.value = skills.join(', ') + (skills.length > 0 ? ', ' : '');
+        
+        // Hide suggestions
+        document.getElementById('skill-suggestions').style.display = 'none';
+        
+        // Focus back on textarea
+        textarea.focus();
+    }
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.skills-input-container')) {
+            document.getElementById('skill-suggestions').style.display = 'none';
+        }
+    });
+    </script>
 </body>
 </html>

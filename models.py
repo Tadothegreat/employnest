@@ -18,6 +18,24 @@ class User(db.Model):
     phone_verification_code = db.Column(db.String(6))
     verification_code_expiry = db.Column(db.DateTime)
     
+    # Personal Details (for job seekers)
+    first_name = db.Column(db.String(100))
+    surname = db.Column(db.String(100))
+    date_of_birth = db.Column(db.Date)
+    national_id = db.Column(db.String(50))
+    gender = db.Column(db.String(20))
+    religion = db.Column(db.String(50))
+    marital_status = db.Column(db.String(30))
+    place_of_birth = db.Column(db.String(200))
+    home_address = db.Column(db.Text)
+    contact_phone = db.Column(db.String(50))
+    
+    # Job Seeker Verification
+    seeker_verified = db.Column(db.Boolean, default=False)
+    seeker_verification_requested = db.Column(db.Boolean, default=False)
+    seeker_verification_date = db.Column(db.DateTime)
+    seeker_verified_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
     # Verification fields (for employers)
     company_name = db.Column(db.String(200))
     company_registration = db.Column(db.String(100))  # Business registration number

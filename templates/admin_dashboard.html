@@ -59,31 +59,69 @@
                 </div>
             </div>
 
+            <!-- Quick Actions -->
+            <div class="admin-actions" style="margin-top: 30px;">
+                <h3>Quick Actions</h3>
+                <div class="action-buttons-large">
+                    
+                    <!-- Employer Verifications -->
+                    <a href="{{ url_for('admin_verifications') }}" class="action-card">
+                        <span class="action-icon">🏢</span>
+                        <span class="action-title">Employer Verifications</span>
+                        {% if pending_verifications > 0 %}
+                            <span class="pending-count">{{ pending_verifications }}</span>
+                        {% endif %}
+                        <span class="action-desc">Review employer verification requests</span>
+                    </a>
+                    
+                    <!-- Job Seeker Verifications (NEW) -->
+                    <a href="{{ url_for('admin_seeker_verifications') }}" class="action-card">
+                        <span class="action-icon">🛡️</span>
+                        <span class="action-title">Job Seeker Verifications</span>
+                        {% if pending_seeker_verifications > 0 %}
+                            <span class="pending-count">{{ pending_seeker_verifications }}</span>
+                        {% endif %}
+                        <span class="action-desc">Review job seeker identity verification requests</span>
+                    </a>
+                    
+                    <!-- View All Employers -->
+                    <a href="{{ url_for('admin_all_employers') }}" class="action-card">
+                        <span class="action-icon">📋</span>
+                        <span class="action-title">All Employers</span>
+                        <span class="action-desc">View and manage all employer accounts</span>
+                    </a>
+                    
+                </div>
+            </div>
+
             <!-- Main Admin Actions -->
             <div class="card" style="margin-top: 30px;">
-                <h3>✅ Pending Verifications</h3>
+                <h3>✅ Pending Verifications Summary</h3>
                 
-                {% if pending_verifications > 0 %}
-                    <p style="margin-bottom: 20px;">
-                        <strong>{{ pending_verifications }}</strong> employer(s) waiting for verification.
-                    </p>
-                    <a href="{{ url_for('admin_verifications') }}" class="btn btn-primary btn-large">
-                        Review Verification Requests
-                    </a>
-                {% else %}
-                    <p style="color: #28a745; margin-bottom: 20px;">
-                        ✅ No pending verification requests.
-                    </p>
-                    <a href="{{ url_for('admin_verifications') }}" class="btn btn-outline">
-                        View Pending
-                    </a>
-                {% endif %}
-                
-                <!-- View All Employers Button -->
-                <div style="margin-top: 20px;">
-                    <a href="{{ url_for('admin_all_employers') }}" class="btn btn-outline">
-                        🏢 View All Employers
-                    </a>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f7f9fc; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px;">🏢 Employers</h4>
+                        {% if pending_verifications > 0 %}
+                            <p style="font-size: 24px; font-weight: bold; color: #dc3545;">{{ pending_verifications }}</p>
+                            <p>waiting for verification</p>
+                            <a href="{{ url_for('admin_verifications') }}" class="btn btn-outline btn-small" style="margin-top: 10px;">Review</a>
+                        {% else %}
+                            <p style="font-size: 24px; font-weight: bold; color: #28a745;">0</p>
+                            <p>pending</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="text-align: center; padding: 15px; background: #f7f9fc; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px;">🛡️ Job Seekers</h4>
+                        {% if pending_seeker_verifications > 0 %}
+                            <p style="font-size: 24px; font-weight: bold; color: #dc3545;">{{ pending_seeker_verifications }}</p>
+                            <p>waiting for verification</p>
+                            <a href="{{ url_for('admin_seeker_verifications') }}" class="btn btn-outline btn-small" style="margin-top: 10px;">Review</a>
+                        {% else %}
+                            <p style="font-size: 24px; font-weight: bold; color: #28a745;">0</p>
+                            <p>pending</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
@@ -94,14 +132,15 @@
                     <div>
                         <p><strong>Total Employers:</strong> {{ total_employers }}</p>
                         <p><strong>Verified Employers:</strong> {{ verified_employers }}</p>
-                        <p><strong>Pending Verification:</strong> {{ pending_verifications }}</p>
+                        <p><strong>Pending Employer Verification:</strong> {{ pending_verifications }}</p>
                     </div>
                     <div>
                         <p><strong>Total Job Seekers:</strong> {{ total_seekers }}</p>
-                        <p><strong>Total Jobs:</strong> {{ total_jobs }}</p>
-                        <p><strong>Platform Status:</strong> <span style="color: #28a745;">🟢 Operational</span></p>
+                        <p><strong>Pending Seeker Verification:</strong> {{ pending_seeker_verifications }}</p>
+                        <p><strong>Total Active Jobs:</strong> {{ total_jobs }}</p>
                     </div>
                 </div>
+                <p style="margin-top: 15px;"><strong>Platform Status:</strong> <span style="color: #28a745;">🟢 Operational</span></p>
             </div>
             
             <!-- Back Link -->

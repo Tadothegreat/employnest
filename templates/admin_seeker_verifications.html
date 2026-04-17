@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Job Seeker Verifications</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar admin-navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none;">
+                <h1>🐦 EmployNest Admin</h1>
+            </a>
+            <div class="nav-links">
+                <span class="admin-badge">Administrator</span>
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        {% if request.args.get('approved') %}
+            <div class="alert alert-success">✅ Job seeker verification approved!</div>
+        {% endif %}
+        {% if request.args.get('rejected') %}
+            <div class="alert alert-info">ℹ️ Verification request rejected.</div>
+        {% endif %}
+
+        <!-- Pending Verifications -->
+        <div class="admin-section">
+            <h2>⏳ Pending Job Seeker Verifications</h2>
+            
+            {% if pending %}
+                <div class="verification-list">
+                    {% for seeker in pending %}
+                        <div class="verification-request-card">
+                            <div class="request-header">
+                                <div>
+                                    <h3>{{ seeker.first_name }} {{ seeker.surname }}</h3>
+                                    <p class="request-meta">Requested verification</p>
+                                </div>
+                                <span class="status-badge pending">Pending Review</span>
+                            </div>
+                            
+                            <div class="request-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Email:</span>
+                                    <span>{{ seeker.email }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">National ID:</span>
+                                    <span>{{ seeker.national_id }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Date of Birth:</span>
+                                    <span>{{ seeker.date_of_birth.strftime('%d %b %Y') if seeker.date_of_birth else 'N/A' }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Gender:</span>
+                                    <span>{{ seeker.gender }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Phone:</span>
+                                    <span>{{ seeker.contact_phone or seeker.phone_number }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Address:</span>
+                                    <span>{{ seeker.home_address }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="request-actions">
+                                <a href="{{ url_for('verify_seeker', seeker_id=seeker.id) }}" 
+                                   class="btn btn-success"
+                                   onclick="return confirm('Approve verification for {{ seeker.first_name }} {{ seeker.surname }}?')">
+                                    ✅ Approve
+                                </a>
+                                <a href="{{ url_for('reject_seeker_verification', seeker_id=seeker.id) }}" 
+                                   class="btn btn-danger"
+                                   onclick="return confirm('Reject verification for {{ seeker.first_name }} {{ seeker.surname }}?')">
+                                    ❌ Reject
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-results-small">
+                    <p>✅ No pending job seeker verifications.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Verified Job Seekers -->
+        <div class="admin-section">
+            <h2>✅ Verified Job Seekers</h2>
+            
+            {% if verified %}
+                <div class="verified-list">
+                    <table class="verified-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>National ID</th>
+                                <th>Verified On</th>
+                                <th>Applications</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for seeker in verified %}
+                                <tr>
+                                    <td>
+                                        <span class="verified-badge-small">✅</span>
+                                        {{ seeker.first_name }} {{ seeker.surname }}
+                                    </td>
+                                    <td>{{ seeker.email }}</td>
+                                    <td>{{ seeker.national_id }}</td>
+                                    <td>{{ seeker.seeker_verification_date.strftime('%d %b %Y') if seeker.seeker_verification_date else 'N/A' }}</td>
+                                    <td>{{ seeker.applications|length }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="no-results-small">
+                    <p>📭 No verified job seekers yet.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('admin_dashboard') }}">← Back to Admin Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployNest - Request Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #667eea;">
+                <h1>🐦 EmployNest</h1>
+            </a>
+            <div class="nav-links">
+                <span>Welcome, {{ session.name }}!</span>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+
+        <div class="form-container-wide">
+            <h2>🛡️ Request Identity Verification</h2>
+            <p class="form-intro">Verify your identity to increase your chances of being hired. Verified job seekers are trusted by employers.</p>
+            
+            <div class="verification-benefits">
+                <h3>Benefits of Verification:</h3>
+                <ul>
+                    <li>✅ "Verified Job Seeker" badge on your profile</li>
+                    <li>✅ Increased trust from employers</li>
+                    <li>✅ Higher chances of being shortlisted</li>
+                    <li>✅ Stand out from unverified applicants</li>
+                </ul>
+            </div>
+
+            <form method="POST" class="verification-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first_name">First Name(s) *</label>
+                        <input type="text" name="first_name" id="first_name" required 
+                               value="{{ user.first_name or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="surname">Surname *</label>
+                        <input type="text" name="surname" id="surname" required 
+                               value="{{ user.surname or '' }}">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date_of_birth">Date of Birth *</label>
+                        <input type="date" name="date_of_birth" id="date_of_birth" required
+                               value="{{ user.date_of_birth.strftime('%Y-%m-%d') if user.date_of_birth else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="national_id">National ID *</label>
+                        <input type="text" name="national_id" id="national_id" required
+                               value="{{ user.national_id or '' }}" placeholder="e.g., 63-1234567A12">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gender">Gender *</label>
+                        <select name="gender" id="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male" {% if user.gender == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if user.gender == 'Female' %}selected{% endif %}>Female</option>
+                            <option value="Other" {% if user.gender == 'Other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="marital_status">Marital Status</label>
+                        <select name="marital_status" id="marital_status">
+                            <option value="">Select Status</option>
+                            <option value="Single" {% if user.marital_status == 'Single' %}selected{% endif %}>Single</option>
+                            <option value="Married" {% if user.marital_status == 'Married' %}selected{% endif %}>Married</option>
+                            <option value="Divorced" {% if user.marital_status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                            <option value="Widowed" {% if user.marital_status == 'Widowed' %}selected{% endif %}>Widowed</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="religion">Religion</label>
+                        <input type="text" name="religion" id="religion" 
+                               value="{{ user.religion or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="place_of_birth">Place of Birth</label>
+                        <input type="text" name="place_of_birth" id="place_of_birth" 
+                               value="{{ user.place_of_birth or '' }}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="home_address">Home Address *</label>
+                    <textarea name="home_address" id="home_address" rows="2" required>{{ user.home_address or '' }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_phone">Contact Phone *</label>
+                    <input type="tel" name="contact_phone" id="contact_phone" required
+                           value="{{ user.contact_phone or user.phone_number or '' }}">
+                </div>
+
+                <div class="verification-note">
+                    <p>📋 <strong>Note:</strong> Our admin team will review your submission within 1-2 business days.</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-large">📤 Submit Verification Request</button>
+                    <a href="{{ url_for('profile') }}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+        
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('profile') }}">← Back to Profile</a>
+        </p>
+    </div>
+</body>
+</html>

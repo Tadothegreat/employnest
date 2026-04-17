@@ -69,7 +69,10 @@ def allowed_file(filename):
 
 # CONNECT db to app
 db.init_app(app)
-
+# Create database tables if they don't exist
+with app.app_context():
+    db.create_all()
+    print("✅ Database tables verified!")
 
 # ========== VALIDATION FUNCTIONS ==========
 

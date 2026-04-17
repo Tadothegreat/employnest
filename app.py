@@ -191,6 +191,62 @@ def setup_admin():
     """
 
 
+# ========== DATABASE SETUP ROUTE (SAFE TO KEEP PERMANENTLY) ==========
+@app.route("/db-setup")
+def db_setup():
+    """
+    Check if database needs migration. Safe to run anytime.
+    Only creates missing tables/columns, never drops data unnecessarily.
+    """
+    from sqlalchemy import inspect
+    from sqlalchemy.exc import OperationalError
+    
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+    
+    # Check if we need to create tables (if none exist)
+    if not tables:
+        db.create_all()
+        tables = inspector.get_table_names()
+        return f"""
+            <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+                <h3>✅ Database Tables Created!</h3>
+                <p>Tables: {tables}</p>
+                <p><a href='/setup-admin'>→ Create Admin Account</a></p>
+                <p><a href='/'>→ Go to Home</a></p>
+            </div>
+        """
+    
+    # Check for missing columns in user table
+    try:
+        # Try to query new columns - if they don't exist, recreate tables
+        User.query.with_entities(User.first_name).first()
+        User.query.with_entities(User.seeker_verified).first()
+        
+        return f"""
+            <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+                <h3>✅ Database is Up to Date!</h3>
+                <p>Tables: {tables}</p>
+                <p>All required columns are present.</p>
+                <p><a href='/'>→ Go to Home</a></p>
+            </div>
+        """
+    except OperationalError:
+        # Missing columns - need to recreate
+        db.drop_all()
+        db.create_all()
+        tables = inspector.get_table_names()
+        return f"""
+            <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+                <h3>✅ Database Updated with New Columns!</h3>
+                <p>Tables: {tables}</p>
+                <p style='color: #dc3545;'>⚠️ Note: Existing data was cleared due to schema changes.</p>
+                <p><a href='/setup-admin'>→ Create Admin Account</a></p>
+                <p><a href='/'>→ Go to Home</a></p>
+            </div>
+        """
+
+
 # ========== AUTH ROUTES ==========
 
 # Home
@@ -927,65 +983,4 @@ def admin_dashboard():
                          pending_seeker_verifications=pending_seeker_verifications)
 
 
-# ========== PROFILE ROUTES ==========
-
-# View/Edit Profile
-@app.route("/profile", methods=["GET", "POST"])
-def profile():
-    if "user_id" not in session:
-        return redirect("/login")
-    
-    user = User.query.get(session["user_id"])
-    
-    if request.method == "POST":
-        if user.role == 'job_seeker':
-            # Update personal details
-            user.first_name = request.form.get("first_name", "").strip()
-            user.surname = request.form.get("surname", "").strip()
-            
-            dob = request.form.get("date_of_birth", "")
-            if dob:
-                user.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
-            
-            user.national_id = request.form.get("national_id", "").strip()
-            user.gender = request.form.get("gender", "")
-            user.religion = request.form.get("religion", "").strip()
-            user.marital_status = request.form.get("marital_status", "")
-            user.place_of_birth = request.form.get("place_of_birth", "").strip()
-            user.home_address = request.form.get("home_address", "").strip()
-            user.contact_phone = request.form.get("contact_phone", "").strip()
-            
-            # Update skills and qualifications
-            skills = request.form.get("skills", "").strip()
-            qualifications = request.form.get("qualifications", "").strip()
-            experience_years = request.form.get("experience_years", "")
-            
-            user.skills = skills
-            user.qualifications = qualifications
-            user.experience_years = int(experience_years) if experience_years else 0
-            
-            # Check if profile is complete
-            if skills and qualifications:
-                user.profile_complete = True
-            
-            # Handle resume upload
-            if 'resume' in request.files:
-                file = request.files['resume']
-                if file and file.filename and allowed_file(file.filename):
-                    filename = secure_filename(f"resume_{user.id}_{file.filename}")
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(filepath)
-                    user.resume_filename = filename
-            
-        elif user.role == 'employer':
-            # Update employer profile
-            company_name = request.form.get("company_name", "").strip()
-            company_phone = request.form.get("company_phone", "").strip()
-            company_address = request.form.get("company_address", "").strip()
-            
-            if company_name:
-                user.company_name = company_name
-            if company_phone:
-                user.company_phone = company_phone
-            if company_address:
-                user
+# ========== PROFILE ROUTES =

@@ -145,6 +145,49 @@ def admin_required(f):
     return decorated_function
 
 
+# ========== SETUP ROUTE (SAFE TO KEEP PERMANENTLY) ==========
+@app.route("/setup-admin")
+def setup_admin():
+    """Create admin account if it doesn't exist. Safe to run multiple times."""
+    from models import User
+    from werkzeug.security import generate_password_hash
+    
+    # Check if admin already exists
+    admin = User.query.filter_by(email='admin@employnest.com').first()
+    
+    if admin:
+        return """
+            <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+                <h3>ℹ️ Admin Account Already Exists</h3>
+                <p>The admin account is already set up.</p>
+                <p><a href='/login'>← Go to Login</a></p>
+            </div>
+        """
+    
+    # Create admin if not exists
+    admin = User(
+        name='System Admin',
+        email='admin@employnest.com',
+        password=generate_password_hash('Admin@2026'),
+        role='admin',
+        verified=True,
+        email_verified=True,
+        phone_verified=True
+    )
+    db.session.add(admin)
+    db.session.commit()
+    
+    return """
+        <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+            <h3>✅ Admin Account Created!</h3>
+            <p><strong>Email:</strong> admin@employnest.com</p>
+            <p><strong>Password:</strong> Admin@2026</p>
+            <p style='color: #dc3545; margin-top: 20px;'>⚠️ Please change this password after your first login!</p>
+            <p><a href='/login'>← Go to Login</a></p>
+        </div>
+    """
+
+
 # ========== AUTH ROUTES ==========
 
 # Home
@@ -963,56 +1006,4 @@ def blind_screening(job_id):
     applications = Application.query.filter_by(job_id=job_id).all()
     candidates = [app.applicant for app in applications]
     
-    # Calculate blind screening scores (no demographic info)
-    blind_scores = []
-    for candidate in candidates:
-        score = matcher.get_blind_screening_score(candidate, job)
-        blind_scores.append({
-            'candidate': candidate,
-            'application': next(app for app in applications if app.applicant_id == candidate.id),
-            'blind_score': score
-        })
-    
-    # Sort by blind score
-    blind_scores.sort(key=lambda x: x['blind_score'], reverse=True)
-    
-    return render_template("blind_screening.html",
-                         job=job,
-                         ranked_candidates=blind_scores)
-
-
-# Skill Suggestions API (for autocomplete)
-@app.route("/api/skill-suggestions")
-def skill_suggestions():
-    if "user_id" not in session:
-        return {"suggestions": []}
-    
-    query = request.args.get('q', '').strip()
-    
-    if len(query) < 2:
-        return {"suggestions": []}
-    
-    suggestions = matcher.suggest_skills(query, limit=8)
-    return {"suggestions": suggestions}
-
-
-# Market Skill Recommendations
-@app.route("/skill-recommendations")
-def skill_recommendations():
-    if "user_id" not in session:
-        return redirect("/login")
-    if session.get("role") != "job_seeker":
-        return redirect("/dashboard")
-    
-    user = User.query.get(session["user_id"])
-    all_jobs = Job.query.filter_by(is_active=True).all()
-    
-    recommended_skills = get_skill_recommendations(user.skills, all_jobs, top_n=10)
-    
-    return render_template("skill_recommendations.html",
-                         user=user,
-                         recommended_skills=recommended_skills)
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+   

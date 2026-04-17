@@ -55,7 +55,6 @@ class JobMatcher:
             return set()
         
         text = self.preprocess_text(text)
-        words = set(text.split())
         
         # Find common skills
         found_skills = set()
@@ -226,40 +225,32 @@ class JobMatcher:
         }
     
     def get_blind_screening_score(self, candidate, job):
-    """
-    Calculate a blind screening score that ignores demographic information
-    Focuses only on skills and qualifications
-    """
-    # Only use skills and qualifications text
-    blind_text = self.preprocess_text(
-        (candidate.skills or '') + ' ' + (candidate.qualifications or '')
-    )
-    
-    job_text = self.preprocess_text(job.requirements or '')
-    
-    # If either text is empty, return 0
-    if not blind_text.strip() or not job_text.strip():
-        return 0.0
-    
-    try:
-        # Create temporary vectorizer for blind screening
-        temp_vectorizer = TfidfVectorizer(stop_words='english')
-        vectors = temp_vectorizer.fit_transform([job_text, blind_text])
+        """
+        Calculate a blind screening score that ignores demographic information
+        Focuses only on skills and qualifications
+        """
+        # Only use skills and qualifications text
+        blind_text = self.preprocess_text(
+            (candidate.skills or '') + ' ' + (candidate.qualifications or '')
+        )
         
-        similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
+        job_text = self.preprocess_text(job.requirements or '')
         
-        return float(similarity)
-    except Exception as e:
-        print(f"Blind screening error: {e}")
-        return 0.0
+        # If either text is empty, return 0
+        if not blind_text.strip() or not job_text.strip():
+            return 0.0
         
-        # Create temporary vectorizer for blind screening
-        temp_vectorizer = TfidfVectorizer(stop_words='english')
-        vectors = temp_vectorizer.fit_transform([job_text, blind_text])
-        
-        similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
-        
-        return float(similarity)
+        try:
+            # Create temporary vectorizer for blind screening
+            temp_vectorizer = TfidfVectorizer(stop_words='english')
+            vectors = temp_vectorizer.fit_transform([job_text, blind_text])
+            
+            similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
+            
+            return float(similarity)
+        except Exception as e:
+            print(f"Blind screening error: {e}")
+            return 0.0
     
     def extract_keywords(self, text, top_n=10):
         """Extract important keywords from text using TF-IDF"""

@@ -984,3 +984,229 @@ def admin_dashboard():
 
 
 # ========== PROFILE ROUTES =
+# ========== PROFILE ROUTES ==========
+
+# View/Edit Profile
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    user = User.query.get(session["user_id"])
+    
+    if request.method == "POST":
+        if user.role == 'job_seeker':
+            # Update personal details
+            user.first_name = request.form.get("first_name", "").strip()
+            user.surname = request.form.get("surname", "").strip()
+            
+            dob = request.form.get("date_of_birth", "")
+            if dob:
+                user.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
+            
+            user.national_id = request.form.get("national_id", "").strip()
+            user.gender = request.form.get("gender", "")
+            user.religion = request.form.get("religion", "").strip()
+            user.marital_status = request.form.get("marital_status", "")
+            user.place_of_birth = request.form.get("place_of_birth", "").strip()
+            user.home_address = request.form.get("home_address", "").strip()
+            user.contact_phone = request.form.get("contact_phone", "").strip()
+            
+            # Update skills and qualifications
+            skills = request.form.get("skills", "").strip()
+            qualifications = request.form.get("qualifications", "").strip()
+            experience_years = request.form.get("experience_years", "")
+            
+            user.skills = skills
+            user.qualifications = qualifications
+            user.experience_years = int(experience_years) if experience_years else 0
+            
+            # Check if profile is complete
+            if skills and qualifications:
+                user.profile_complete = True
+            
+            # Handle resume upload
+            if 'resume' in request.files:
+                file = request.files['resume']
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(f"resume_{user.id}_{file.filename}")
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    user.resume_filename = filename
+            
+        elif user.role == 'employer':
+            # Update employer profile
+            company_name = request.form.get("company_name", "").strip()
+            company_phone = request.form.get("company_phone", "").strip()
+            company_address = request.form.get("company_address", "").strip()
+            
+            if company_name:
+                user.company_name = company_name
+            if company_phone:
+                user.company_phone = company_phone
+            if company_address:
+                user.company_address = company_address
+        
+        db.session.commit()
+        return redirect("/profile?updated=1")
+    
+    return render_template("profile.html", user=user)
+
+
+# View public profile (for employers to see applicants)
+@app.route("/applicant/<int:applicant_id>")
+def view_applicant_profile(applicant_id):
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    # Only employers can view applicant profiles
+    if session.get("role") != "employer":
+        return redirect("/dashboard")
+    
+    applicant = User.query.get_or_404(applicant_id)
+    
+    # Ensure the applicant is a job seeker
+    if applicant.role != 'job_seeker':
+        return "Invalid user type."
+    
+    return render_template("applicant_profile.html", applicant=applicant)
+
+
+# ========== AI MATCHING ROUTES ==========
+
+# Recommended Jobs for Job Seeker
+@app.route("/recommended-jobs")
+def recommended_jobs():
+    if "user_id" not in session:
+        return redirect("/login")
+    if session.get("role") != "job_seeker":
+        return redirect("/dashboard")
+    
+    user = User.query.get(session["user_id"])
+    
+    # Get all active jobs
+    all_jobs = Job.query.filter_by(is_active=True).all()
+    
+    # Get recommendations
+    recommended_job_ids = get_job_recommendations(user, all_jobs, top_n=10)
+    
+    # Fetch the actual job objects in the recommended order
+    recommended_jobs = []
+    job_dict = {job.id: job for job in all_jobs}
+    
+    for job_id in recommended_job_ids:
+        if job_id in job_dict:
+            recommended_jobs.append(job_dict[job_id])
+    
+    # Get jobs that user hasn't applied to
+    applied_job_ids = [app.job_id for app in user.applications]
+    new_jobs = [job for job in all_jobs if job.id not in applied_job_ids and job.id not in recommended_job_ids]
+    
+    return render_template("recommended_jobs.html",
+                         recommended_jobs=recommended_jobs,
+                         new_jobs=new_jobs[:5],
+                         user=user)
+
+
+# AI Rank Candidates for a Job (employers only)
+@app.route("/job/<int:job_id>/rank-candidates")
+def rank_candidates(job_id):
+    if "user_id" not in session:
+        return redirect("/login")
+    if session.get("role") != "employer":
+        return redirect("/dashboard")
+    
+    job = Job.query.get_or_404(job_id)
+    
+    # Check ownership
+    if job.employer_id != session["user_id"]:
+        return "You don't have permission to view this."
+    
+    # Get all applicants for this job
+    applications = Application.query.filter_by(job_id=job_id).all()
+    candidates = [app.applicant for app in applications]
+    
+    # Get AI rankings with detailed results
+    ranked_results = get_top_candidates(job, candidates, top_n=len(candidates))
+    
+    # Build ranked applications list from the detailed results
+    ranked_applications = []
+    candidate_dict = {c.id: c for c in candidates}
+    app_dict = {app.applicant_id: app for app in applications}
+    
+    for result in ranked_results:
+        candidate_id = result['candidate_id']
+        if candidate_id in candidate_dict:
+            ranked_applications.append({
+                'applicant': candidate_dict[candidate_id],
+                'application': app_dict[candidate_id],
+                'match_score': result['score'],
+                'text_score': result['text_score'],
+                'skill_score': result['skill_score'],
+                'matched_skills': result['matched_skills'],
+                'missing_skills': result['missing_skills'],
+                'total_required': result['total_required_skills']
+            })
+    
+    return render_template("ranked_candidates.html",
+                         job=job,
+                         ranked_applications=ranked_applications)
+
+
+# ========== ADVANCED AI ROUTES ==========
+
+# Skill Gap Analysis for a Job
+@app.route("/job/<int:job_id>/skill-gap")
+def skill_gap_analysis(job_id):
+    if "user_id" not in session:
+        return redirect("/login")
+    if session.get("role") != "job_seeker":
+        return redirect("/dashboard")
+    
+    user = User.query.get(session["user_id"])
+    job = Job.query.get_or_404(job_id)
+    
+    # Get skill gap analysis
+    gap_analysis = matcher.get_skill_gap_analysis(user, job)
+    
+    return render_template("skill_gap.html", 
+                         job=job, 
+                         user=user, 
+                         analysis=gap_analysis)
+
+
+# Skill Suggestions API (for autocomplete)
+@app.route("/api/skill-suggestions")
+def skill_suggestions():
+    if "user_id" not in session:
+        return {"suggestions": []}
+    
+    query = request.args.get('q', '').strip()
+    
+    if len(query) < 2:
+        return {"suggestions": []}
+    
+    suggestions = matcher.suggest_skills(query, limit=8)
+    return {"suggestions": suggestions}
+
+
+# Market Skill Recommendations
+@app.route("/skill-recommendations")
+def skill_recommendations():
+    if "user_id" not in session:
+        return redirect("/login")
+    if session.get("role") != "job_seeker":
+        return redirect("/dashboard")
+    
+    user = User.query.get(session["user_id"])
+    all_jobs = Job.query.filter_by(is_active=True).all()
+    
+    recommended_skills = get_skill_recommendations(user.skills, all_jobs, top_n=10)
+    
+    return render_template("skill_recommendations.html",
+                         user=user,
+                         recommended_skills=recommended_skills)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

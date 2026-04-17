@@ -344,3 +344,9 @@ def get_skill_recommendations(user_skills, all_jobs, top_n=5):
     recommended.sort(key=lambda x: skill_freq.get(x, 0), reverse=True)
     
     return recommended[:top_n]
+"""
+AI Job-Candidate Matching Engine
+Uses TF-IDF vectorization and cosine similarity to match candidates to jobs
+Includes bias mitigation, skill gap analysis, and match explanations
+Fixed: 2026-04-17
+"""

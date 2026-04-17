@@ -999,10 +999,4 @@ def blind_screening(job_id):
     if session.get("role") != "employer":
         return redirect("/dashboard")
     
-    job = Job.query.get_or_404(job_id)
-    
-    # Check ownership
-    if job.employer_id != session["user_id"]:
-        return "You don't have permission to view this."
-    
-    # Get all applicants
+    job = Job.query.get_or_

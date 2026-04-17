@@ -76,6 +76,17 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# Upload configuration
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+
+# Create upload folder if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # CONNECT db to app
 db.init_app(app)

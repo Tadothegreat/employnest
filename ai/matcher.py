@@ -226,19 +226,32 @@ class JobMatcher:
         }
     
     def get_blind_screening_score(self, candidate, job):
-        """
-        Calculate a blind screening score that ignores demographic information
-        Focuses only on skills and qualifications
-        """
-        # Only use skills and qualifications text
-        blind_text = self.preprocess_text(
-            (candidate.skills or '') + ' ' + (candidate.qualifications or '')
-        )
+    """
+    Calculate a blind screening score that ignores demographic information
+    Focuses only on skills and qualifications
+    """
+    # Only use skills and qualifications text
+    blind_text = self.preprocess_text(
+        (candidate.skills or '') + ' ' + (candidate.qualifications or '')
+    )
+    
+    job_text = self.preprocess_text(job.requirements or '')
+    
+    # If either text is empty, return 0
+    if not blind_text.strip() or not job_text.strip():
+        return 0.0
+    
+    try:
+        # Create temporary vectorizer for blind screening
+        temp_vectorizer = TfidfVectorizer(stop_words='english')
+        vectors = temp_vectorizer.fit_transform([job_text, blind_text])
         
-        job_text = self.preprocess_text(job.requirements or '')
+        similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
         
-        if not blind_text.strip() or not job_text.strip():
-            return 0.0
+        return float(similarity)
+    except Exception as e:
+        print(f"Blind screening error: {e}")
+        return 0.0
         
         # Create temporary vectorizer for blind screening
         temp_vectorizer = TfidfVectorizer(stop_words='english')

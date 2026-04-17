@@ -10,19 +10,31 @@ from itsdangerous import URLSafeTimedSerializer
 import re
 import os
 import random
+import urllib.parse
 
 app = Flask(__name__)
 
 # ========== DATABASE CONFIGURATION ==========
-# Use DATABASE_URL from environment if available (Render/Production)
-# Otherwise use SQLite locally for development
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
 
-# If using MySQL (PlanetScale), SQLAlchemy needs the driver specified
-if database_url and database_url.startswith('mysql://'):
-    database_url = database_url.replace('mysql://', 'mysql+pymysql://')
+# Parse and fix Aiven MySQL connection
+if database_url and 'mysql' in database_url:
+    # Ensure we use pymysql driver
+    if database_url.startswith('mysql://'):
+        database_url = database_url.replace('mysql://', 'mysql+pymysql://')
+    
+    # Add SSL parameters for Aiven
+    connect_args = {
+        'ssl': {
+            'ssl_mode': 'REQUIRED'
+        }
+    }
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': connect_args}
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret123')
 
 # Password Reset Configuration
@@ -48,13 +60,11 @@ def generate_verification_code():
 
 def send_verification_email(email, code):
     """Simulate sending verification email"""
-    # In production, integrate with SendGrid, Mailgun, or SMTP
     print(f"[DEV] Verification code for {email}: {code}")
     return True
 
 def send_verification_sms(phone, code):
     """Simulate sending verification SMS"""
-    # In production, integrate with Twilio or similar
     print(f"[DEV] SMS code for {phone}: {code}")
     return True
 
@@ -69,10 +79,22 @@ def allowed_file(filename):
 
 # CONNECT db to app
 db.init_app(app)
-# Create database tables if they don't exist
+
+# Create tables on startup
 with app.app_context():
-    db.create_all()
-    print("✅ Database tables verified!")
+    try:
+        db.create_all()
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        print(f"✅ Database connected! Tables: {tables}")
+    except Exception as e:
+        print(f"❌ Database error: {e}")
+        # Fall back to SQLite if MySQL fails
+        if 'mysql' in database_url:
+            print("⚠️ Falling back to SQLite...")
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+            db.create_all()
 
 # ========== VALIDATION FUNCTIONS ==========
 

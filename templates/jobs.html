@@ -17,7 +17,7 @@
                 {% if session.user_id %}
                     <span>Welcome, {{ session.name }}!</span>
                     <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
-                    <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+                    <a href="#" onclick="confirmLogout(event)" class="btn btn-outline">Logout</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="btn btn-outline">Sign In</a>
                     <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
@@ -113,5 +113,13 @@
             <a href="{{ url_for('home') }}">← Back to Home</a>
         </p>
     </div>
-</body>
+
+<script>
+function confirmLogout(event) {
+    event.preventDefault();
+    if (confirm("Are you sure you want to log out?")) {
+        window.location.href = "{{ url_for('logout') }}";
+    }
+}
+</script></body>
 </html>

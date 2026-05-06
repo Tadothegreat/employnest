@@ -17,7 +17,7 @@
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
                 <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+                <a href="#" onclick="confirmLogout(event)" class="btn btn-outline">Logout</a>
             </div>
         </nav>
 
@@ -56,7 +56,7 @@
                             <div class="skill-name">{{ skill }}</div>
                             <div class="skill-demand">
                                 <span class="demand-bar">
-                                    <span class="demand-fill" style="width: {{ demand_width }}%;"></span>
+                                    <span class="demand-fill" style="width:{{ demand_width }}%"></span>
                                 </span>
                                 <span class="demand-label">
                                     {% if loop.index <= 3 %}
@@ -135,5 +135,13 @@
         window.location.href = "{{ url_for('profile') }}?add_skill=" + encodeURIComponent(skill);
     }
     </script>
-</body>
+
+<script>
+function confirmLogout(event) {
+    event.preventDefault();
+    if (confirm("Are you sure you want to log out?")) {
+        window.location.href = "{{ url_for('logout') }}";
+    }
+}
+</script></body>
 </html>

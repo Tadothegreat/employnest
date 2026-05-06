@@ -17,7 +17,7 @@
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
                 <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+                <a href="#" onclick="confirmLogout(event)" class="btn btn-outline">Logout</a>
             </div>
         </nav>
 
@@ -150,5 +150,13 @@
             <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
         </p>
     </div>
-</body>
+
+<script>
+function confirmLogout(event) {
+    event.preventDefault();
+    if (confirm("Are you sure you want to log out?")) {
+        window.location.href = "{{ url_for('logout') }}";
+    }
+}
+</script></body>
 </html>

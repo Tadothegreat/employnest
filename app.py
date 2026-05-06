@@ -1174,6 +1174,57 @@ def skill_gap_analysis(job_id):
                          user=user, 
                          analysis=gap_analysis)
 
+# Blind Screening (Bias-Free) Ranking
+@app.route("/job/<int:job_id>/blind-screening")
+def blind_screening(job_id):
+    if "user_id" not in session:
+        return redirect("/login")
+    if session.get("role") != "employer":
+        return redirect("/dashboard")
+    
+    job = Job.query.get_or_404(job_id)
+    
+    # Check ownership
+    if job.employer_id != session["user_id"]:
+        return "You don't have permission to view this."
+    
+    # Get all applicants
+    applications = Application.query.filter_by(job_id=job_id).all()
+    
+    # If no applicants, return empty page
+    if not applications:
+        return render_template("blind_screening.html",
+                             job=job,
+                             ranked_candidates=[])
+    
+    candidates = [app.applicant for app in applications]
+    
+    # Calculate blind screening scores (no demographic info)
+    blind_scores = []
+    for candidate in candidates:
+        try:
+            score = matcher.get_blind_screening_score(candidate, job)
+        except Exception as e:
+            print(f"Error scoring candidate {candidate.id}: {e}")
+            score = 0.0
+        
+        # Find matching application
+        app = next((a for a in applications if a.applicant_id == candidate.id), None)
+        
+        if app:
+            blind_scores.append({
+                'candidate': candidate,
+                'application': app,
+                'blind_score': score
+            })
+    
+    # Sort by blind score (highest first)
+    blind_scores.sort(key=lambda x: x['blind_score'], reverse=True)
+    
+    # Always return the template
+    return render_template("blind_screening.html",
+                         job=job,
+                         ranked_candidates=blind_scores)
 
 # Skill Suggestions API (for autocomplete)
 @app.route("/api/skill-suggestions")

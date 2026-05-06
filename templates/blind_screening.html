@@ -84,7 +84,7 @@
                                         {% for skill in item.candidate.skills.split(',')[:8] %}
                                             <span class="skill-tag">{{ skill.strip() }}</span>
                                         {% endfor %}
-                                        {% if item.candidate.skills.split(',')|length &gt; 8 %}
+                                        {% if item.candidate.skills.split(',')|length > 8 %}
                                             <span class="skill-tag">+{{ item.candidate.skills.split(',')|length - 8 }} more</span>
                                         {% endif %}
                                     </div>
@@ -95,7 +95,7 @@
                             {% if item.candidate.qualifications %}
                                 <div class="anonymous-qualifications">
                                     <strong>Qualifications:</strong>
-                                    <p>{{ item.candidate.qualifications[:300] }}{% if item.candidate.qualifications|length &gt; 300 %}...{% endif %}</p>
+                                    <p>{{ item.candidate.qualifications[:300] }}{% if item.candidate.qualifications|length > 300 %}...{% endif %}</p>
                                 </div>
                             {% endif %}
                             

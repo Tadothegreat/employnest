@@ -61,7 +61,7 @@
                                         <a href="{{ url_for('view_applicants', job_id=job.id) }}" class="btn btn-small">
                                             👥 View ({{ job.applications|length }})
                                         </a>
-                                        {% if job.applications|length &gt; 0 %}
+                                        {% if job.applications|length > 0 %}
     <a href="{{ url_for('rank_candidates', job_id=job.id) }}" class="btn btn-small" style="background: #667eea; color: white;">
         🤖 AI Rank
     </a>

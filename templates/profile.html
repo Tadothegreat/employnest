@@ -186,10 +186,10 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="resume">Upload Resume (PDF, DOC, DOCX)</label>
+                                <label for="resume">Upload CV (PDF, DOC, DOCX)</label>
                                 <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx">
                                 {% if user.resume_filename %}
-                                    <small>Current resume: {{ user.resume_filename }}</small>
+                                    <small>Current CV: {{ user.resume_filename }}</small>
                                 {% endif %}
                             </div>
                         </div>

@@ -49,7 +49,7 @@
                 <div class="recommended-skills-grid">
                     {% for skill in recommended_skills %}
                         {% set demand_width = 100 - (loop.index0 * 8) %}
-                        {% if demand_width < 10 %}
+                        {% if demand_width &lt; 10 %}
                             {% set demand_width = 10 %}
                         {% endif %}
                         <div class="recommended-skill-card">
@@ -60,9 +60,9 @@
                                     <span class="demand-fill" style="width:{{ demand_width }}%"></span>
                                 </span>
                                 <span class="demand-label">
-                                    {% if loop.index <= 3 %}
+                                    {% if loop.index &lt;= 3 %}
                                         High Demand
-                                    {% elif loop.index <= 6 %}
+                                    {% elif loop.index &lt;= 6 %}
                                         Medium Demand
                                     {% else %}
                                         Growing Demand
@@ -109,6 +109,12 @@
                     <h4>LinkedIn Learning</h4>
                     <p>Professional development courses.</p>
                     <a href="https://www.linkedin.com/learning" target="_blank" class="btn btn-outline btn-small">Visit →</a>
+                </div>
+                                <div class="resource-card">
+                    <div class="resource-icon">🎓</div>
+                    <h4>Midlands State University (MSU)</h4>
+                    <p>Zimbabwe's leading university offering cutting-edge programs in Data Science, Informatics, and Technology.</p>
+                    <a href="https://www.msu.ac.zw" target="_blank" class="btn btn-outline btn-small">Visit →</a>
                 </div>
             </div>
         </div>

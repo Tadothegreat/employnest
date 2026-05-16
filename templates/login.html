@@ -38,7 +38,7 @@
                 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" name="password" id="password" placeholder="••••••••" required>
+                    <input type="password" name="password" id="password" placeholder="••••••••" required><span onclick="togglePassword('password', 'passwordToggle')" style="margin-left: -30px; cursor: pointer; font-size: 18px;" id="passwordToggle">👁️</span>
                 </div>
                 
                 <p style="text-align: right; margin-top: 5px; margin-bottom: 15px;">
@@ -57,5 +57,18 @@
             </p>
         </div>
     </div>
-</body>
+
+<script>
+function togglePassword(fieldId, iconId) {
+    const passwordField = document.getElementById(fieldId);
+    const toggleIcon = document.getElementById(iconId);
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        toggleIcon.textContent = '🙈';
+    } else {
+        passwordField.type = 'password';
+        toggleIcon.textContent = '👁️';
+    }
+}
+</script></body>
 </html>

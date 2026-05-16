@@ -14,7 +14,7 @@
                 <h1>🐦 EmployNest</h1>
             </a>
             <div class="nav-links">
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('profile') }}" class="btn btn-outline">👤 Profile</a>
                 <a href="#" onclick="confirmLogout(event)" class="btn btn-outline">Logout</a>
@@ -27,6 +27,13 @@
             
             {% if session.role == 'employer' %}
                 <!-- ========== EMPLOYER DASHBOARD ========== -->
+                
+                <!-- Verification Request Success Message -->
+                {% if request.args.get('verification_requested') == '1' %}
+                    <div class="alert alert-success" style="margin-bottom: 20px;">
+                        ✅ Your verification request has been submitted! Our admin team will review your application within <strong>2-3 business days</strong>. You will be notified once your account is verified.
+                    </div>
+                {% endif %}
                 
                 <!-- Verification Status Card -->
                 <div class="card verification-card">
@@ -41,7 +48,7 @@
                     {% elif user.verification_requested %}
                         <div class="verification-status pending">
                             <span class="badge pending-badge">⏳ Verification Pending</span>
-                            <p>Your verification request is being reviewed by our admin team. This usually takes 1-2 business days.</p>
+                            <p>Your verification request is being reviewed by our admin team. This usually takes 2-3 business days.</p>
                         </div>
                     {% else %}
                         <div class="verification-status not-requested">
@@ -71,6 +78,36 @@
                 
             {% else %}
                 <!-- ========== JOB SEEKER DASHBOARD ========== -->
+                
+                <!-- Verification Request Success Message -->
+                {% if request.args.get('verification_requested') == '1' %}
+                    <div class="alert alert-success" style="margin-bottom: 20px;">
+                        ✅ Your identity verification request has been submitted! Our admin team will review your application within <strong>2-3 business days</strong>. You will be notified once your identity is verified.
+                    </div>
+                {% endif %}
+                
+                <!-- Job Seeker Verification Status Card -->
+                <div class="card verification-card" style="margin-bottom: 25px;">
+                    <h3>🛡️ Identity Verification Status</h3>
+                    {% if user.seeker_verified %}
+                        <div class="verification-status verified">
+                            <span class="badge verified-badge">✅ Verified Job Seeker</span>
+                            <p>Your identity has been verified! Employers will see you as a verified candidate.</p>
+                            <p class="verification-date">Verified on: {{ user.seeker_verification_date.strftime('%d %B %Y') if user.seeker_verification_date else 'N/A' }}</p>
+                        </div>
+                    {% elif user.seeker_verification_requested %}
+                        <div class="verification-status pending">
+                            <span class="badge pending-badge">⏳ Verification Pending</span>
+                            <p>Your verification request is being reviewed by our admin team. This usually takes 2-3 business days.</p>
+                        </div>
+                    {% else %}
+                        <div class="verification-status not-requested">
+                            <span class="badge not-verified-badge">⚠️ Not Verified</span>
+                            <p>Get verified to increase your chances of being hired! Verified candidates are trusted by employers.</p>
+                            <a href="{{ url_for('request_seeker_verification') }}" class="btn btn-primary">Verify Your Identity</a>
+                        </div>
+                    {% endif %}
+                </div>
                 
                 <!-- Dashboard Actions -->
                 <div class="dashboard-actions">
@@ -108,29 +145,30 @@
         </p>
     </div>
 
-<script>
-function confirmLogout(event) {
-    event.preventDefault();
-    if (confirm("Are you sure you want to log out?")) {
-        window.location.href = "{{ url_for('logout') }}";
+    <script>
+    function confirmLogout(event) {
+        event.preventDefault();
+        if (confirm("Are you sure you want to log out?")) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
     }
-}
-</script>
-<script>
-// Theme Toggle
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+    </script>
+    
+    <script>
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
     }
-}
-(function() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-})();
-</script></body>
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+    </script>
+</body>
 </html>

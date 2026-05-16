@@ -14,7 +14,7 @@
                 <h1>🐦 EmployNest</h1>
             </a>
             <div class="nav-links">
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
                 <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
@@ -49,7 +49,7 @@
                 <div class="recommended-skills-grid">
                     {% for skill in recommended_skills %}
                         {% set demand_width = 100 - (loop.index0 * 8) %}
-                        {% if demand_width &lt; 10 %}
+                        {% if demand_width < 10 %}
                             {% set demand_width = 10 %}
                         {% endif %}
                         <div class="recommended-skill-card">
@@ -60,9 +60,9 @@
                                     <span class="demand-fill" style="width:{{ demand_width }}%"></span>
                                 </span>
                                 <span class="demand-label">
-                                    {% if loop.index &lt;= 3 %}
+                                    {% if loop.index <= 3 %}
                                         High Demand
-                                    {% elif loop.index &lt;= 6 %}
+                                    {% elif loop.index <= 6 %}
                                         Medium Demand
                                     {% else %}
                                         Growing Demand
@@ -110,7 +110,7 @@
                     <p>Professional development courses.</p>
                     <a href="https://www.linkedin.com/learning" target="_blank" class="btn btn-outline btn-small">Visit →</a>
                 </div>
-                                <div class="resource-card">
+                <div class="resource-card">
                     <div class="resource-icon">🎓</div>
                     <h4>Midlands State University (MSU)</h4>
                     <p>Zimbabwe's leading university offering cutting-edge programs in Data Science, Informatics, and Technology.</p>
@@ -138,34 +138,34 @@
 
     <script>
     function addSkillToProfile(skill) {
-        // Redirect to profile page with skill pre-filled
         window.location.href = "{{ url_for('profile') }}?add_skill=" + encodeURIComponent(skill);
     }
     </script>
 
-<script>
-function confirmLogout(event) {
-    event.preventDefault();
-    if (confirm("Are you sure you want to log out?")) {
-        window.location.href = "{{ url_for('logout') }}";
+    <script>
+    function confirmLogout(event) {
+        event.preventDefault();
+        if (confirm("Are you sure you want to log out?")) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
     }
-}
-</script>
-<script>
-// Theme Toggle
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+    </script>
+
+    <script>
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
     }
-}
-(function() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-})();
-</script></body>
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+    </script>
+</body>
 </html>

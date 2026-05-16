@@ -1,5 +1,5 @@
 from ai.matcher import get_job_recommendations, get_top_candidates, get_skill_recommendations, matcher
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from extensions import db
@@ -595,7 +595,7 @@ def job_detail(job_id):
     return render_template("job_detail.html", job=job, has_applied=has_applied)
 
 
-# Post a new job (employers only)
+# Post a new job (VERIFIED employers only)
 @app.route("/post-job", methods=["GET", "POST"])
 def post_job():
     # Check if user is logged in and is an employer
@@ -605,6 +605,17 @@ def post_job():
         return "Only employers can post jobs. <a href='/dashboard'>Go to Dashboard</a>"
     
     user = User.query.get(session["user_id"])
+    
+    # 🔒 FEATURE 3: Check if employer is verified
+    if not user.verified:
+        return """
+            <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
+                <h3>⚠️ Verification Required</h3>
+                <p>Only verified employers can post jobs. Please verify your account first.</p>
+                <a href='/request-verification' class='btn btn-primary'>Request Verification</a>
+                <a href='/dashboard' class='btn btn-outline'>Back to Dashboard</a>
+            </div>
+        """
     
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -653,13 +664,26 @@ def my_jobs():
     return render_template("my_jobs.html", jobs=jobs)
 
 
-# Apply to a job (job seekers only)
+# Apply to a job (VERIFIED job seekers only)
 @app.route("/apply/<int:job_id>", methods=["POST"])
 def apply_job(job_id):
     if "user_id" not in session:
         return redirect("/login")
     if session.get("role") != "job_seeker":
         return "Only job seekers can apply to jobs. <a href='/jobs'>Browse Jobs</a>"
+    
+    user = User.query.get(session["user_id"])
+    
+    # 🔒 FEATURE 3: Check if job seeker is verified
+    if not user.seeker_verified:
+        return """
+            <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
+                <h3>⚠️ Verification Required</h3>
+                <p>Only verified job seekers can apply to jobs. Please verify your identity first.</p>
+                <a href='/request-seeker-verification' class='btn btn-primary'>Verify Your Identity</a>
+                <a href='/jobs' class='btn btn-outline'>Back to Jobs</a>
+            </div>
+        """
     
     cover_letter = request.form.get("cover_letter", "").strip()
     
@@ -894,6 +918,35 @@ def reject_verification(employer_id):
     return redirect("/admin/verifications?rejected=1")
 
 
+# 🔴 FEATURE 1: Admin - Delete User (with confirmation)
+@app.route("/admin/delete-user/<int:user_id>")
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent admin from deleting themselves
+    if user.id == session["user_id"]:
+        return "You cannot delete your own admin account. <a href='/admin/employers'>Go Back</a>"
+    
+    # Delete all jobs posted by this user (if employer)
+    if user.role == 'employer':
+        Job.query.filter_by(employer_id=user.id).delete()
+    
+    # Delete all applications by this user (if job seeker)
+    Application.query.filter_by(applicant_id=user.id).delete()
+    
+    # Delete applications for jobs this employer posted
+    jobs = Job.query.filter_by(employer_id=user.id).all()
+    for job in jobs:
+        Application.query.filter_by(job_id=job.id).delete()
+    
+    # Delete the user
+    db.session.delete(user)
+    db.session.commit()
+    
+    return redirect("/admin/employers?deleted=1")
+
+
 # Admin - View Pending Job Seeker Verifications
 @app.route("/admin/seeker-verifications")
 @admin_required
@@ -983,7 +1036,6 @@ def admin_dashboard():
                          pending_seeker_verifications=pending_seeker_verifications)
 
 
-# ========== PROFILE ROUTES =
 # ========== PROFILE ROUTES ==========
 
 # View/Edit Profile
@@ -1074,7 +1126,7 @@ def view_applicant_profile(applicant_id):
 
 # ========== AI MATCHING ROUTES ==========
 
-# Recommended Jobs for Job Seeker
+# 🔧 FEATURE 2: Recommended Jobs (only matching skills)
 @app.route("/recommended-jobs")
 def recommended_jobs():
     if "user_id" not in session:
@@ -1087,7 +1139,15 @@ def recommended_jobs():
     # Get all active jobs
     all_jobs = Job.query.filter_by(is_active=True).all()
     
-    # Get recommendations
+    # 🔒 If user has no skills, show message instead of random jobs
+    if not user.skills or not user.skills.strip():
+        return render_template("recommended_jobs.html",
+                             recommended_jobs=[],
+                             new_jobs=[],
+                             user=user,
+                             no_skills=True)
+    
+    # Get recommendations based on user's actual skills
     recommended_job_ids = get_job_recommendations(user, all_jobs, top_n=10)
     
     # Fetch the actual job objects in the recommended order
@@ -1105,7 +1165,8 @@ def recommended_jobs():
     return render_template("recommended_jobs.html",
                          recommended_jobs=recommended_jobs,
                          new_jobs=new_jobs[:5],
-                         user=user)
+                         user=user,
+                         no_skills=False)
 
 
 # AI Rank Candidates for a Job (employers only)
@@ -1174,6 +1235,7 @@ def skill_gap_analysis(job_id):
                          user=user, 
                          analysis=gap_analysis)
 
+
 # Blind Screening (Bias-Free) Ranking
 @app.route("/job/<int:job_id>/blind-screening")
 def blind_screening(job_id):
@@ -1225,6 +1287,37 @@ def blind_screening(job_id):
     return render_template("blind_screening.html",
                          job=job,
                          ranked_candidates=blind_scores)
+
+
+# 🔴 FEATURE 5: Job Trends Visualization
+@app.route("/job-trends")
+def job_trends():
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    # Get job counts by category
+    categories = db.session.query(Job.category, db.func.count(Job.id)).filter_by(is_active=True).group_by(Job.category).all()
+    
+    # Get job counts by location
+    locations = db.session.query(Job.location, db.func.count(Job.id)).filter_by(is_active=True).group_by(Job.location).all()
+    
+    # Get job counts by type
+    job_types = db.session.query(Job.job_type, db.func.count(Job.id)).filter_by(is_active=True).group_by(Job.job_type).all()
+    
+    # Get total active jobs
+    total_jobs = Job.query.filter_by(is_active=True).count()
+    
+    # Get skills in demand
+    from ai.matcher import get_skill_recommendations
+    recommended_skills = get_skill_recommendations("", Job.query.filter_by(is_active=True).all(), top_n=10)
+    
+    return render_template("job_trends.html",
+                         categories=categories,
+                         locations=locations,
+                         job_types=job_types,
+                         total_jobs=total_jobs,
+                         recommended_skills=recommended_skills)
+
 
 # Skill Suggestions API (for autocomplete)
 @app.route("/api/skill-suggestions")

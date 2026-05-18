@@ -14,7 +14,7 @@
                 <h1>🐦 EmployNest</h1>
             </a>
             <div class="nav-links">
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
                 <a href="#" onclick="confirmLogout(event)" class="btn btn-outline">Logout</a>
@@ -37,7 +37,7 @@
                 </ul>
             </div>
 
-            <form method="POST" action="{{ url_for('request_verification') }}" class="verification-form">
+            <form method="POST" action="{{ url_for('request_verification') }}" class="verification-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="company_name">Company Name *</label>
                     <input type="text" name="company_name" id="company_name" required 
@@ -66,8 +66,48 @@
                            value="{{ user.company_phone or '' }}">
                 </div>
 
+                <!-- 📄 Supporting Documents Upload -->
+                <div class="verification-documents-section">
+                    <h3>📄 Supporting Documents</h3>
+                    <p class="section-note">Please upload clear copies of the following documents (PDF, JPG, or PNG format - max 10MB each). These help us verify your business quickly.</p>
+                    
+                    <div class="form-group">
+                        <label for="registration_cert">📋 Certificate of Incorporation / Business Registration *</label>
+                        <input type="file" name="registration_cert" id="registration_cert" 
+                               accept=".pdf,.jpg,.jpeg,.png" required
+                               class="file-input">
+                        <small>Upload your official business registration certificate</small>
+                        {% if user.registration_cert %}
+                            <p class="file-status">📎 Currently uploaded: {{ user.registration_cert }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tax_clearance">🧾 Tax Clearance Certificate (ITF 263)</label>
+                        <input type="file" name="tax_clearance" id="tax_clearance" 
+                               accept=".pdf,.jpg,.jpeg,.png"
+                               class="file-input">
+                        <small>Upload your current tax clearance certificate (optional but recommended for faster verification)</small>
+                        {% if user.tax_clearance %}
+                            <p class="file-status">📎 Currently uploaded: {{ user.tax_clearance }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="business_license">📝 Business License / Operating Permit</label>
+                        <input type="file" name="business_license" id="business_license" 
+                               accept=".pdf,.jpg,.jpeg,.png"
+                               class="file-input">
+                        <small>Upload your current business license or operating permit (optional)</small>
+                        {% if user.business_license %}
+                            <p class="file-status">📎 Currently uploaded: {{ user.business_license }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="verification-note">
-                    <p>📋 <strong>Note:</strong> Our admin team will review your submission within 1-2 business days. You will receive a notification once your account is verified.</p>
+                    <p>📋 <strong>Note:</strong> Our admin team will review your submission within 1-2 business days. Providing complete documentation helps speed up the verification process.</p>
+                    <p>🔒 <strong>Security:</strong> All uploaded documents are stored securely and only accessible by our verification team.</p>
                 </div>
 
                 <div class="form-actions">
@@ -82,42 +122,74 @@
         </p>
     </div>
 
-<script>
-function confirmLogout(event) {
-    event.preventDefault();
-    if (confirm("Are you sure you want to log out?")) {
-        window.location.href = "{{ url_for('logout') }}";
+    <script>
+    function confirmLogout(event) {
+        event.preventDefault();
+        if (confirm("Are you sure you want to log out?")) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
     }
-}
-</script>
-<script>
-// Theme Toggle
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
     }
-}
-(function() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-})();
-</script>
-<!--Start of Tawk.to Script-->
-<script type="text/javascript">
-var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/6a094657d38c371c3413ef2a/1joq3li68';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();
-</script>
-<!--End of Tawk.to Script--></body>
+
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+
+    // File input validation
+    document.querySelectorAll('.file-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please upload a PDF, JPG, or PNG file.');
+                    this.value = '';
+                    return;
+                }
+                
+                if (file.size > maxSize) {
+                    alert('File size must be less than 10MB.');
+                    this.value = '';
+                    return;
+                }
+                
+                // Show file name
+                const label = this.parentElement.querySelector('small') || this.nextElementSibling;
+                if (label) {
+                    label.textContent = '✅ Selected: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                }
+            }
+        });
+    });
+    </script>
+
+    {% if session.get('role') != 'admin' %}
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/6a094657d38c371c3413ef2a/1joq3li68';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+    </script>
+    <!--End of Tawk.to Script-->
+    {% endif %}
+</body>
 </html>

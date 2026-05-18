@@ -13,7 +13,7 @@
                 <h1>🐦 EmployNest</h1>
             </a>
             <div class="nav-links">
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
                 <a href="#" onclick="confirmLogout(event)" class="btn btn-outline">Logout</a>
@@ -34,7 +34,7 @@
                 </ul>
             </div>
 
-            <form method="POST" class="verification-form">
+            <form method="POST" action="{{ url_for('request_seeker_verification') }}" class="verification-form" enctype="multipart/form-data">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="first_name">First Name(s) *</label>
@@ -55,9 +55,31 @@
                                value="{{ user.date_of_birth.strftime('%Y-%m-%d') if user.date_of_birth else '' }}">
                     </div>
                     <div class="form-group">
-                        <label for="national_id">National ID *</label>
-                        <input type="text" name="national_id" id="national_id" required
+                        <label for="id_type">ID Type *</label>
+                        <select name="id_type" id="id_type" required onchange="toggleIdFields()">
+                            <option value="national_id" {% if user.id_type == 'national_id' %}selected{% endif %}>National ID</option>
+                            <option value="passport" {% if user.id_type == 'passport' %}selected{% endif %}>Passport</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- National ID Fields -->
+                <div id="national_id_fields" style="display: {% if user.id_type == 'passport' %}none{% else %}block{% endif %};">
+                    <div class="form-group">
+                        <label for="national_id">National ID Number *</label>
+                        <input type="text" name="national_id" id="national_id"
                                value="{{ user.national_id or '' }}" placeholder="e.g., 63-1234567A12">
+                        <small>Enter your National ID as it appears on your ID card</small>
+                    </div>
+                </div>
+
+                <!-- Passport Fields -->
+                <div id="passport_fields" style="display: {% if user.id_type == 'passport' %}block{% else %}none{% endif %};">
+                    <div class="form-group">
+                        <label for="passport_number">Passport Number *</label>
+                        <input type="text" name="passport_number" id="passport_number"
+                               value="{{ user.passport_number or '' }}" placeholder="e.g., AB1234567">
+                        <small>Enter your passport number as it appears on your passport</small>
                     </div>
                 </div>
                 
@@ -107,8 +129,48 @@
                            value="{{ user.contact_phone or user.phone_number or '' }}">
                 </div>
 
+                <!-- 📸 Identity Document Upload -->
+                <div class="verification-documents-section">
+                    <h3>📸 Identity Document Upload</h3>
+                    <p class="section-note">Please upload clear photos of your identity document. Accepted formats: PDF, JPG, or PNG (max 10MB each).</p>
+                    
+                    <div class="form-group">
+                        <label for="id_front">🪪 Front of ID / Passport *</label>
+                        <input type="file" name="id_front" id="id_front" 
+                               accept=".pdf,.jpg,.jpeg,.png" required
+                               class="file-input">
+                        <small>Upload a clear photo of the front of your National ID or Passport</small>
+                        {% if user.id_front_image %}
+                            <p class="file-status">📎 Currently uploaded: {{ user.id_front_image }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group" id="id_back_field">
+                        <label for="id_back">🪪 Back of National ID</label>
+                        <input type="file" name="id_back" id="id_back" 
+                               accept=".pdf,.jpg,.jpeg,.png"
+                               class="file-input">
+                        <small>Upload the back of your National ID (not required for passports)</small>
+                        {% if user.id_back_image %}
+                            <p class="file-status">📎 Currently uploaded: {{ user.id_back_image }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="selfie_with_id">🤳 Selfie with ID / Passport *</label>
+                        <input type="file" name="selfie_with_id" id="selfie_with_id" 
+                               accept=".jpg,.jpeg,.png" required
+                               class="file-input">
+                        <small>Take a clear photo of yourself holding your ID next to your face. This helps us verify your identity.</small>
+                        {% if user.selfie_with_id %}
+                            <p class="file-status">📎 Currently uploaded: {{ user.selfie_with_id }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="verification-note">
                     <p>📋 <strong>Note:</strong> Our admin team will review your submission within 1-2 business days.</p>
+                    <p>🔒 <strong>Security:</strong> All uploaded documents are stored securely and only accessible by our verification team.</p>
                 </div>
 
                 <div class="form-actions">
@@ -123,42 +185,101 @@
         </p>
     </div>
 
-<script>
-function confirmLogout(event) {
-    event.preventDefault();
-    if (confirm("Are you sure you want to log out?")) {
-        window.location.href = "{{ url_for('logout') }}";
+    <script>
+    function confirmLogout(event) {
+        event.preventDefault();
+        if (confirm("Are you sure you want to log out?")) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
     }
-}
-</script>
-<script>
-// Theme Toggle
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
     }
-}
-(function() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
+
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+
+    // Toggle between National ID and Passport fields
+    function toggleIdFields() {
+        var idType = document.getElementById('id_type').value;
+        if (idType === 'national_id') {
+            document.getElementById('national_id_fields').style.display = 'block';
+            document.getElementById('passport_fields').style.display = 'none';
+            document.getElementById('id_back_field').style.display = 'block';
+            document.getElementById('national_id').setAttribute('required', '');
+            document.getElementById('passport_number').removeAttribute('required');
+        } else {
+            document.getElementById('national_id_fields').style.display = 'none';
+            document.getElementById('passport_fields').style.display = 'block';
+            document.getElementById('id_back_field').style.display = 'none';
+            document.getElementById('national_id').removeAttribute('required');
+            document.getElementById('passport_number').setAttribute('required', '');
+        }
     }
-})();
-</script>
-<!--Start of Tawk.to Script-->
-<script type="text/javascript">
-var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/6a094657d38c371c3413ef2a/1joq3li68';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();
-</script>
-<!--End of Tawk.to Script--></body>
+
+    // File input validation
+    document.querySelectorAll('.file-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please upload a PDF, JPG, or PNG file.');
+                    this.value = '';
+                    return;
+                }
+                
+                if (file.size > maxSize) {
+                    alert('File size must be less than 10MB.');
+                    this.value = '';
+                    return;
+                }
+                
+                // Show selected file info
+                const parent = this.closest('.form-group');
+                const statusEl = parent.querySelector('.file-status');
+                if (!statusEl) {
+                    const p = document.createElement('p');
+                    p.className = 'file-status';
+                    p.textContent = '✅ Selected: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                    parent.appendChild(p);
+                } else {
+                    statusEl.textContent = '✅ Selected: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                }
+            }
+        });
+    });
+
+    // Run on page load to set correct state
+    toggleIdFields();
+    </script>
+
+    {% if session.get('role') != 'admin' %}
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/6a094657d38c371c3413ef2a/1joq3li68';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+    </script>
+    <!--End of Tawk.to Script-->
+    {% endif %}
+</body>
 </html>

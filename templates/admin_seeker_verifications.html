@@ -13,7 +13,7 @@
                 <h1>🐦 EmployNest Admin</h1>
             </a>
             <div class="nav-links">
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
                 <span class="admin-badge">Administrator</span>
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">Dashboard</a>
@@ -26,6 +26,9 @@
         {% endif %}
         {% if request.args.get('rejected') %}
             <div class="alert alert-info">ℹ️ Verification request rejected.</div>
+        {% endif %}
+        {% if request.args.get('deleted') == '1' %}
+            <div class="alert alert-success">✅ Job seeker deleted successfully!</div>
         {% endif %}
 
         <!-- Pending Verifications -->
@@ -50,8 +53,20 @@
                                     <span>{{ seeker.email }}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">National ID:</span>
-                                    <span>{{ seeker.national_id }}</span>
+                                    <span class="detail-label">ID Type:</span>
+                                    <span>
+                                        {% if seeker.id_type == 'passport' %}
+                                            🛂 Passport
+                                        {% else %}
+                                            🪪 National ID
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">
+                                        {% if seeker.id_type == 'passport' %}Passport Number{% else %}National ID{% endif %}:
+                                    </span>
+                                    <span>{{ seeker.passport_number if seeker.id_type == 'passport' else seeker.national_id }}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Date of Birth:</span>
@@ -61,6 +76,24 @@
                                     <span class="detail-label">Gender:</span>
                                     <span>{{ seeker.gender }}</span>
                                 </div>
+                                {% if seeker.religion %}
+                                <div class="detail-row">
+                                    <span class="detail-label">Religion:</span>
+                                    <span>{{ seeker.religion }}</span>
+                                </div>
+                                {% endif %}
+                                {% if seeker.marital_status %}
+                                <div class="detail-row">
+                                    <span class="detail-label">Marital Status:</span>
+                                    <span>{{ seeker.marital_status }}</span>
+                                </div>
+                                {% endif %}
+                                {% if seeker.place_of_birth %}
+                                <div class="detail-row">
+                                    <span class="detail-label">Place of Birth:</span>
+                                    <span>{{ seeker.place_of_birth }}</span>
+                                </div>
+                                {% endif %}
                                 <div class="detail-row">
                                     <span class="detail-label">Phone:</span>
                                     <span>{{ seeker.contact_phone or seeker.phone_number }}</span>
@@ -68,6 +101,41 @@
                                 <div class="detail-row">
                                     <span class="detail-label">Address:</span>
                                     <span>{{ seeker.home_address }}</span>
+                                </div>
+                            </div>
+
+                            <!-- 📸 Identity Documents -->
+                            <div class="verification-documents">
+                                <h4>📸 Identity Documents</h4>
+                                <div class="document-links">
+                                    {% if seeker.id_front_image %}
+                                        <a href="{{ url_for('static', filename='uploads/id_docs/' + seeker.id_front_image) }}" 
+                                           target="_blank" class="btn btn-small btn-outline">
+                                            🪪 View ID Front
+                                        </a>
+                                    {% else %}
+                                        <span class="no-doc">❌ No front image</span>
+                                    {% endif %}
+                                    
+                                    {% if seeker.id_type != 'passport' %}
+                                        {% if seeker.id_back_image %}
+                                            <a href="{{ url_for('static', filename='uploads/id_docs/' + seeker.id_back_image) }}" 
+                                               target="_blank" class="btn btn-small btn-outline">
+                                                🪪 View ID Back
+                                            </a>
+                                        {% else %}
+                                            <span class="no-doc">⚠️ No back image</span>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% if seeker.selfie_with_id %}
+                                        <a href="{{ url_for('static', filename='uploads/id_docs/' + seeker.selfie_with_id) }}" 
+                                           target="_blank" class="btn btn-small btn-outline">
+                                            🤳 View Selfie with ID
+                                        </a>
+                                    {% else %}
+                                        <span class="no-doc">❌ No selfie</span>
+                                    {% endif %}
                                 </div>
                             </div>
                             
@@ -81,6 +149,12 @@
                                    class="btn btn-danger"
                                    onclick="return confirm('Reject verification for {{ seeker.first_name }} {{ seeker.surname }}?')">
                                     ❌ Reject
+                                </a>
+                                <a href="{{ url_for('delete_user', user_id=seeker.id) }}" 
+                                   class="btn btn-danger"
+                                   style="background: #dc3545;"
+                                   onclick="return confirm('DELETE {{ seeker.first_name }} {{ seeker.surname }} and ALL their applications? This cannot be undone!')">
+                                    🗑️ Delete User
                                 </a>
                             </div>
                         </div>
@@ -104,9 +178,12 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>
-                                <th>National ID</th>
+                                <th>ID Type</th>
+                                <th>ID Number</th>
                                 <th>Verified On</th>
                                 <th>Applications</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -117,9 +194,36 @@
                                         {{ seeker.first_name }} {{ seeker.surname }}
                                     </td>
                                     <td>{{ seeker.email }}</td>
-                                    <td>{{ seeker.national_id }}</td>
+                                    <td>
+                                        {% if seeker.id_type == 'passport' %}
+                                            🛂 Passport
+                                        {% else %}
+                                            🪪 National ID
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ seeker.passport_number if seeker.id_type == 'passport' else seeker.national_id }}</td>
                                     <td>{{ seeker.seeker_verification_date.strftime('%d %b %Y') if seeker.seeker_verification_date else 'N/A' }}</td>
                                     <td>{{ seeker.applications|length }}</td>
+                                    <td>
+                                        <div class="document-links-small">
+                                            {% if seeker.id_front_image %}
+                                                <a href="{{ url_for('static', filename='uploads/id_docs/' + seeker.id_front_image) }}" 
+                                                   target="_blank" class="btn btn-tiny btn-outline" title="ID Front">🪪</a>
+                                            {% endif %}
+                                            {% if seeker.selfie_with_id %}
+                                                <a href="{{ url_for('static', filename='uploads/id_docs/' + seeker.selfie_with_id) }}" 
+                                                   target="_blank" class="btn btn-tiny btn-outline" title="Selfie with ID">🤳</a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="action-buttons">
+                                        <a href="{{ url_for('delete_user', user_id=seeker.id) }}" 
+                                           class="btn btn-small btn-danger"
+                                           style="background: #dc3545;"
+                                           onclick="return confirm('DELETE {{ seeker.first_name }} {{ seeker.surname }} and ALL their applications? This cannot be undone!')">
+                                            🗑️ Delete
+                                        </a>
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -137,30 +241,29 @@
         </p>
     </div>
 
-<script>
-function confirmLogout(event) {
-    event.preventDefault();
-    if (confirm("Are you sure you want to log out?")) {
-        window.location.href = "{{ url_for('logout') }}";
+    <script>
+    function confirmLogout(event) {
+        event.preventDefault();
+        if (confirm("Are you sure you want to log out?")) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
     }
-}
-</script>
-<script>
-// Theme Toggle
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
     }
-}
-(function() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-})();
-</script>
+
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+    </script>
 </body>
 </html>

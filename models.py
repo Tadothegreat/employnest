@@ -36,6 +36,13 @@ class User(db.Model):
     seeker_verification_date = db.Column(db.DateTime)
     seeker_verified_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     
+    # 🆕 Job Seeker ID Document Uploads
+    id_type = db.Column(db.String(20))  # 'national_id' or 'passport'
+    passport_number = db.Column(db.String(50))
+    id_front_image = db.Column(db.String(300))
+    id_back_image = db.Column(db.String(300))
+    selfie_with_id = db.Column(db.String(300))
+    
     # Verification fields (for employers)
     company_name = db.Column(db.String(200))
     company_registration = db.Column(db.String(100))  # Business registration number
@@ -44,6 +51,11 @@ class User(db.Model):
     verification_requested = db.Column(db.Boolean, default=False)
     verification_date = db.Column(db.DateTime)
     verified_by = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_verified_by'))  # Admin who verified
+    
+    # 🆕 Employer Verification Document Uploads
+    registration_cert = db.Column(db.String(300))
+    tax_clearance = db.Column(db.String(300))
+    business_license = db.Column(db.String(300))
     
     # Profile fields (for job seekers)
     skills = db.Column(db.Text)  # Comma-separated skills

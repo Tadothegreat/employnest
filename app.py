@@ -1,4 +1,4 @@
-from ai_matcher import get_job_recommendations, get_top_candidates, get_skill_recommendations, matcher
+from ai.ai_matcher import get_job_recommendations, get_top_candidates, get_skill_recommendations, matcher
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename

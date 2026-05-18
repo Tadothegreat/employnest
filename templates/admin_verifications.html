@@ -14,7 +14,7 @@
                 <h1>🐦 EmployNest Admin</h1>
             </a>
             <div class="nav-links">
-    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌓 Theme</button>
                 <span class="admin-badge">Administrator</span>
                 <span>Welcome, {{ session.name }}!</span>
                 <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">Dashboard</a>
@@ -32,6 +32,9 @@
             <div class="alert alert-info">
                 ℹ️ Verification request rejected.
             </div>
+        {% endif %}
+        {% if request.args.get('deleted') == '1' %}
+            <div class="alert alert-success">✅ User deleted successfully!</div>
         {% endif %}
 
         <!-- Pending Verifications -->
@@ -72,6 +75,39 @@
                                     <span>{{ employer.company_phone or 'Not provided' }}</span>
                                 </div>
                             </div>
+
+                            <!-- 📄 Uploaded Documents -->
+                            <div class="verification-documents">
+                                <h4>📄 Submitted Documents</h4>
+                                <div class="document-links">
+                                    {% if employer.registration_cert %}
+                                        <a href="{{ url_for('static', filename='uploads/verification_docs/' + employer.registration_cert) }}" 
+                                           target="_blank" class="btn btn-small btn-outline">
+                                            📋 View Registration Certificate
+                                        </a>
+                                    {% else %}
+                                        <span class="no-doc">❌ No registration certificate</span>
+                                    {% endif %}
+                                    
+                                    {% if employer.tax_clearance %}
+                                        <a href="{{ url_for('static', filename='uploads/verification_docs/' + employer.tax_clearance) }}" 
+                                           target="_blank" class="btn btn-small btn-outline">
+                                            🧾 View Tax Clearance
+                                        </a>
+                                    {% else %}
+                                        <span class="no-doc">⚠️ No tax clearance</span>
+                                    {% endif %}
+                                    
+                                    {% if employer.business_license %}
+                                        <a href="{{ url_for('static', filename='uploads/verification_docs/' + employer.business_license) }}" 
+                                           target="_blank" class="btn btn-small btn-outline">
+                                            📝 View Business License
+                                        </a>
+                                    {% else %}
+                                        <span class="no-doc">⚠️ No business license</span>
+                                    {% endif %}
+                                </div>
+                            </div>
                             
                             <div class="request-actions">
                                 <a href="{{ url_for('verify_employer', employer_id=employer.id) }}" 
@@ -83,6 +119,12 @@
                                    class="btn btn-danger"
                                    onclick="return confirm('Reject verification request from {{ employer.company_name or employer.name }}?')">
                                     ❌ Reject
+                                </a>
+                                <a href="{{ url_for('delete_user', user_id=employer.id) }}" 
+                                   class="btn btn-danger"
+                                   style="background: #dc3545;"
+                                   onclick="return confirm('DELETE {{ employer.company_name or employer.name }} and ALL their jobs? This cannot be undone!')">
+                                    🗑️ Delete User
                                 </a>
                             </div>
                         </div>
@@ -109,6 +151,8 @@
                                 <th>Email</th>
                                 <th>Verified On</th>
                                 <th>Jobs Posted</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -122,6 +166,30 @@
                                     <td>{{ employer.email }}</td>
                                     <td>{{ employer.verification_date.strftime('%d %b %Y') if employer.verification_date else 'N/A' }}</td>
                                     <td>{{ employer.jobs_posted|length }}</td>
+                                    <td>
+                                        <div class="document-links-small">
+                                            {% if employer.registration_cert %}
+                                                <a href="{{ url_for('static', filename='uploads/verification_docs/' + employer.registration_cert) }}" 
+                                                   target="_blank" class="btn btn-tiny btn-outline" title="Registration Certificate">📋</a>
+                                            {% endif %}
+                                            {% if employer.tax_clearance %}
+                                                <a href="{{ url_for('static', filename='uploads/verification_docs/' + employer.tax_clearance) }}" 
+                                                   target="_blank" class="btn btn-tiny btn-outline" title="Tax Clearance">🧾</a>
+                                            {% endif %}
+                                            {% if employer.business_license %}
+                                                <a href="{{ url_for('static', filename='uploads/verification_docs/' + employer.business_license) }}" 
+                                                   target="_blank" class="btn btn-tiny btn-outline" title="Business License">📝</a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="action-buttons">
+                                        <a href="{{ url_for('delete_user', user_id=employer.id) }}" 
+                                           class="btn btn-small btn-danger"
+                                           style="background: #dc3545;"
+                                           onclick="return confirm('DELETE {{ employer.company_name or employer.name }} and ALL their jobs? This cannot be undone!')">
+                                            🗑️ Delete
+                                        </a>
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -139,30 +207,29 @@
         </p>
     </div>
 
-<script>
-function confirmLogout(event) {
-    event.preventDefault();
-    if (confirm("Are you sure you want to log out?")) {
-        window.location.href = "{{ url_for('logout') }}";
+    <script>
+    function confirmLogout(event) {
+        event.preventDefault();
+        if (confirm("Are you sure you want to log out?")) {
+            window.location.href = "{{ url_for('logout') }}";
+        }
     }
-}
-</script>
-<script>
-// Theme Toggle
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
     }
-}
-(function() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-})();
-</script>
+
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+    </script>
 </body>
 </html>

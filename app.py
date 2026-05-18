@@ -1,4 +1,4 @@
-from ai.matcher import get_job_recommendations, get_top_candidates, get_skill_recommendations, matcher
+from ai_matcher import get_job_recommendations, get_top_candidates, get_skill_recommendations, matcher
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -7,12 +7,16 @@ from models import User, Job, Application
 from datetime import datetime, timedelta
 from functools import wraps
 from itsdangerous import URLSafeTimedSerializer
+import resend
 import re
 import os
 import random
 import urllib.parse
 
 app = Flask(__name__)
+
+# ========== RESEND EMAIL CONFIGURATION ==========
+resend.api_key = os.environ.get("RESEND_API_KEY", "")
 
 # ========== DATABASE CONFIGURATION ==========
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
@@ -59,9 +63,68 @@ def generate_verification_code():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
 def send_verification_email(email, code):
-    """Simulate sending verification email"""
-    print(f"[DEV] Verification code for {email}: {code}")
-    return True
+    """Send verification email via Resend"""
+    try:
+        api_key = os.environ.get("RESEND_API_KEY", "")
+        
+        if api_key and api_key != "":
+            params = {
+                "from": "EmployNest <noreply@employnest.onrender.com>",
+                "to": [email],
+                "subject": "EmployNest - Email Verification Code",
+                "html": f"""
+                    <h2>Welcome to EmployNest! 🐦</h2>
+                    <p>Thank you for registering!</p>
+                    <p>Your email verification code is:</p>
+                    <h1 style="font-size: 32px; letter-spacing: 8px; color: #667eea;">{code}</h1>
+                    <p>Please enter this code on the verification page to complete your registration.</p>
+                    <p>This code expires in 24 hours.</p>
+                    <p>If you did not create an account with EmployNest, please ignore this email.</p>
+                    <hr>
+                    <p style="color: #888;">The EmployNest Team<br>https://employnest.onrender.com</p>
+                """
+            }
+            resend.Emails.send(params)
+            print(f"✅ Verification email sent to {email}")
+            return True
+        else:
+            print(f"[DEV MODE] No Resend API key. Verification code for {email}: {code}")
+            return False
+    except Exception as e:
+        print(f"❌ Email failed: {e}")
+        print(f"[FALLBACK] Verification code for {email}: {code}")
+        return False
+
+def send_password_reset_email(email, reset_url):
+    """Send password reset email via Resend"""
+    try:
+        api_key = os.environ.get("RESEND_API_KEY", "")
+        
+        if api_key and api_key != "":
+            params = {
+                "from": "EmployNest <noreply@employnest.onrender.com>",
+                "to": [email],
+                "subject": "EmployNest - Password Reset",
+                "html": f"""
+                    <h2>Password Reset Request</h2>
+                    <p>You recently requested to reset your password for your EmployNest account.</p>
+                    <p>Click the link below to reset your password:</p>
+                    <a href="{reset_url}" style="display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+                    <p>This link expires in 1 hour.</p>
+                    <p>If you did not request a password reset, please ignore this email.</p>
+                    <hr>
+                    <p style="color: #888;">The EmployNest Team</p>
+                """
+            }
+            resend.Emails.send(params)
+            print(f"✅ Password reset email sent to {email}")
+            return True
+        else:
+            print(f"[DEV MODE] No Resend API key. Reset URL for {email}: {reset_url}")
+            return False
+    except Exception as e:
+        print(f"❌ Password reset email failed: {e}")
+        return False
 
 def send_verification_sms(phone, code):
     """Simulate sending verification SMS"""
@@ -330,13 +393,22 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
-        # Send verification codes
-        send_verification_email(email, email_code)
+        # Try to send verification email (NEVER crash registration)
+        email_sent = False
+        try:
+            email_sent = send_verification_email(email, email_code)
+        except Exception as e:
+            print(f"⚠️ Email error but registration continues: {e}")
+        
         if phone_number:
             send_verification_sms(phone_number, phone_code)
         
         # Store user_id in session for verification
         session["pending_user_id"] = new_user.id
+        
+        if not email_sent:
+            # Show the code directly on the verification page as fallback
+            return redirect(f"/verify-account?show_code={email_code}")
         
         return redirect("/verify-account")
 
@@ -431,7 +503,10 @@ def verify_account():
         else:
             return "Invalid verification codes. Please try again. <a href='/verify-account'>Go Back</a>"
     
-    return render_template("verify_account.html", user=user)
+    # Check if we need to show the code directly (email failed)
+    show_code = request.args.get('show_code', '')
+    
+    return render_template("verify_account.html", user=user, show_code=show_code)
 
 
 @app.route("/resend-verification")
@@ -451,9 +526,12 @@ def resend_verification():
     db.session.commit()
     
     # Resend codes
-    send_verification_email(user.email, user.email_verification_code)
+    email_sent = send_verification_email(user.email, user.email_verification_code)
     if user.phone_number:
         send_verification_sms(user.phone_number, user.phone_verification_code)
+    
+    if not email_sent:
+        return redirect(f"/verify-account?resent=1&show_code={user.email_verification_code}")
     
     return redirect("/verify-account?resent=1")
 
@@ -476,20 +554,31 @@ def forgot_password():
             token = generate_reset_token(email)
             reset_url = url_for('reset_password', token=token, _external=True)
             
-            # In production, send email here
-            # For development, display the link
-            return f"""
-                <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
-                    <h3>📧 Password Reset Link (Development Mode)</h3>
-                    <p>A password reset link has been generated for: <strong>{email}</strong></p>
-                    <p>In production, this would be emailed. For now, click the link below:</p>
-                    <a href='{reset_url}' style='display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;'>Reset Password</a>
-                    <p style='margin-top: 20px; font-size: 12px; color: #666;'>Link expires in 1 hour.</p>
-                    <p><a href='/login'>← Back to Login</a></p>
-                </div>
-            """
+            # Try to send real email
+            email_sent = send_password_reset_email(email, reset_url)
+            
+            if email_sent:
+                return f"""
+                    <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+                        <h3>📧 Password Reset Email Sent</h3>
+                        <p>A password reset link has been sent to: <strong>{email}</strong></p>
+                        <p>Please check your inbox and spam folder.</p>
+                        <p style='color: #888; font-size: 14px;'>Link expires in 1 hour.</p>
+                        <p><a href='/login'>← Back to Login</a></p>
+                    </div>
+                """
+            else:
+                return f"""
+                    <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
+                        <h3>📧 Password Reset Link</h3>
+                        <p>A password reset link has been generated for: <strong>{email}</strong></p>
+                        <p>Click the link below to reset your password:</p>
+                        <a href='{reset_url}' style='display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;'>Reset Password</a>
+                        <p style='margin-top: 20px; font-size: 12px; color: #666;'>Link expires in 1 hour.</p>
+                        <p><a href='/login'>← Back to Login</a></p>
+                    </div>
+                """
         else:
-            # Don't reveal if email exists or not (security)
             return """
                 <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
                     <h3>📧 Password Reset Requested</h3>
@@ -606,7 +695,7 @@ def post_job():
     
     user = User.query.get(session["user_id"])
     
-    # 🔒 FEATURE 3: Check if employer is verified
+    # Check if employer is verified
     if not user.verified:
         return """
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
@@ -674,7 +763,7 @@ def apply_job(job_id):
     
     user = User.query.get(session["user_id"])
     
-    # 🔒 FEATURE 3: Check if job seeker is verified
+    # Check if job seeker is verified
     if not user.seeker_verified:
         return """
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
@@ -918,7 +1007,7 @@ def reject_verification(employer_id):
     return redirect("/admin/verifications?rejected=1")
 
 
-# 🔴 FEATURE 1: Admin - Delete User (with confirmation)
+# Admin - Delete User
 @app.route("/admin/delete-user/<int:user_id>")
 @admin_required
 def delete_user(user_id):
@@ -930,15 +1019,15 @@ def delete_user(user_id):
     
     # Delete all jobs posted by this user (if employer)
     if user.role == 'employer':
+        # Delete applications for jobs this employer posted first
+        jobs = Job.query.filter_by(employer_id=user.id).all()
+        for job in jobs:
+            Application.query.filter_by(job_id=job.id).delete()
+        # Then delete the jobs
         Job.query.filter_by(employer_id=user.id).delete()
     
     # Delete all applications by this user (if job seeker)
     Application.query.filter_by(applicant_id=user.id).delete()
-    
-    # Delete applications for jobs this employer posted
-    jobs = Job.query.filter_by(employer_id=user.id).all()
-    for job in jobs:
-        Application.query.filter_by(job_id=job.id).delete()
     
     # Delete the user
     db.session.delete(user)
@@ -1126,7 +1215,7 @@ def view_applicant_profile(applicant_id):
 
 # ========== AI MATCHING ROUTES ==========
 
-# 🔧 FEATURE 2: Recommended Jobs (only matching skills)
+# Recommended Jobs (only matching skills)
 @app.route("/recommended-jobs")
 def recommended_jobs():
     if "user_id" not in session:
@@ -1139,7 +1228,7 @@ def recommended_jobs():
     # Get all active jobs
     all_jobs = Job.query.filter_by(is_active=True).all()
     
-    # 🔒 If user has no skills, show message instead of random jobs
+    # If user has no skills, show message instead of random jobs
     if not user.skills or not user.skills.strip():
         return render_template("recommended_jobs.html",
                              recommended_jobs=[],
@@ -1289,7 +1378,7 @@ def blind_screening(job_id):
                          ranked_candidates=blind_scores)
 
 
-# 🔴 FEATURE 5: Job Trends Visualization
+# Job Trends Visualization
 @app.route("/job-trends")
 def job_trends():
     if "user_id" not in session:
@@ -1308,7 +1397,6 @@ def job_trends():
     total_jobs = Job.query.filter_by(is_active=True).count()
     
     # Get skills in demand
-    from ai.matcher import get_skill_recommendations
     recommended_skills = get_skill_recommendations("", Job.query.filter_by(is_active=True).all(), top_n=10)
     
     return render_template("job_trends.html",

@@ -23,11 +23,9 @@ database_url = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
 
 # Parse and fix Aiven MySQL connection
 if database_url and 'mysql' in database_url:
-    # Ensure we use pymysql driver
     if database_url.startswith('mysql://'):
         database_url = database_url.replace('mysql://', 'mysql+pymysql://')
     
-    # Add SSL parameters for Aiven
     connect_args = {
         'ssl': {
             'ssl_mode': 'REQUIRED'
@@ -40,17 +38,13 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret123')
-
-# Password Reset Configuration
 app.config['SECURITY_PASSWORD_SALT'] = 'employnest-password-reset-salt'
 
 def generate_reset_token(email):
-    """Generate a password reset token valid for 1 hour"""
     serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
     return serializer.dumps(email, salt=app.config['SECURITY_PASSWORD_SALT'])
 
 def verify_reset_token(token, expiration=3600):
-    """Verify a password reset token (default 1 hour expiry)"""
     serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
     try:
         email = serializer.loads(token, salt=app.config['SECURITY_PASSWORD_SALT'], max_age=expiration)
@@ -59,14 +53,11 @@ def verify_reset_token(token, expiration=3600):
         return None
 
 def generate_verification_code():
-    """Generate a 6-digit verification code"""
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
 def send_verification_email(email, code):
-    """Send verification email via Resend"""
     try:
         api_key = os.environ.get("RESEND_API_KEY", "")
-        
         if api_key and api_key != "":
             params = {
                 "from": "EmployNest <noreply@employnest.onrender.com>",
@@ -96,10 +87,8 @@ def send_verification_email(email, code):
         return False
 
 def send_password_reset_email(email, reset_url):
-    """Send password reset email via Resend"""
     try:
         api_key = os.environ.get("RESEND_API_KEY", "")
-        
         if api_key and api_key != "":
             params = {
                 "from": "EmployNest <noreply@employnest.onrender.com>",
@@ -127,26 +116,29 @@ def send_password_reset_email(email, reset_url):
         return False
 
 def send_verification_sms(phone, code):
-    """Simulate sending verification SMS"""
     print(f"[DEV] SMS code for {phone}: {code}")
     return True
 
 # Upload configuration
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'}
+VERIFICATION_ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max file size
 
-# Create upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs('static/uploads/verification_docs', exist_ok=True)
+os.makedirs('static/uploads/id_docs', exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def allowed_verification_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in VERIFICATION_ALLOWED_EXTENSIONS
+
 # CONNECT db to app
 db.init_app(app)
 
-# Create tables on startup
 with app.app_context():
     try:
         db.create_all()
@@ -156,7 +148,6 @@ with app.app_context():
         print(f"✅ Database connected! Tables: {tables}")
     except Exception as e:
         print(f"❌ Database error: {e}")
-        # Fall back to SQLite if MySQL fails
         if 'mysql' in database_url:
             print("⚠️ Falling back to SQLite...")
             app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -165,38 +156,23 @@ with app.app_context():
 # ========== VALIDATION FUNCTIONS ==========
 
 def is_valid_email(email):
-    """Check if email format is valid"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
-
 def is_valid_password(password):
-    """Check password requirements:
-    - At least 6 characters
-    - Only letters, numbers, and allowed symbols (@._-)
-    """
     if len(password) < 6:
         return False, "Password must be at least 6 characters long"
-    
-    # Allow only alphanumeric and @._-
     allowed_pattern = r'^[a-zA-Z0-9@._-]+$'
     if not re.match(allowed_pattern, password):
         return False, "Password can only contain letters, numbers, and @ . _ -"
-    
     return True, ""
-
 
 def is_valid_name(name):
-    """Check if name is valid (letters and spaces only)"""
     if len(name.strip()) < 2:
         return False, "Name must be at least 2 characters long"
-    
-    # Allow letters and spaces only
     if not re.match(r'^[a-zA-Z\s]+$', name):
         return False, "Name can only contain letters and spaces"
-    
     return True, ""
-
 
 # ========== DECORATOR FOR ADMIN PROTECTION ==========
 
@@ -210,17 +186,13 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
-# ========== SETUP ROUTE (SAFE TO KEEP PERMANENTLY) ==========
+# ========== SETUP ROUTE ==========
 @app.route("/setup-admin")
 def setup_admin():
-    """Create admin account if it doesn't exist. Safe to run multiple times."""
     from models import User
     from werkzeug.security import generate_password_hash
     
-    # Check if admin already exists
     admin = User.query.filter_by(email='admin@employnest.com').first()
-    
     if admin:
         return """
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
@@ -230,7 +202,6 @@ def setup_admin():
             </div>
         """
     
-    # Create admin if not exists
     admin = User(
         name='System Admin',
         email='admin@employnest.com',
@@ -253,21 +224,15 @@ def setup_admin():
         </div>
     """
 
-
-# ========== DATABASE SETUP ROUTE (SAFE TO KEEP PERMANENTLY) ==========
+# ========== DATABASE SETUP ROUTE ==========
 @app.route("/db-setup")
 def db_setup():
-    """
-    Check if database needs migration. Safe to run anytime.
-    Only creates missing tables/columns, never drops data unnecessarily.
-    """
     from sqlalchemy import inspect
     from sqlalchemy.exc import OperationalError
     
     inspector = inspect(db.engine)
     tables = inspector.get_table_names()
     
-    # Check if we need to create tables (if none exist)
     if not tables:
         db.create_all()
         tables = inspector.get_table_names()
@@ -280,12 +245,9 @@ def db_setup():
             </div>
         """
     
-    # Check for missing columns in user table
     try:
-        # Try to query new columns - if they don't exist, recreate tables
         User.query.with_entities(User.first_name).first()
         User.query.with_entities(User.seeker_verified).first()
-        
         return f"""
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto;'>
                 <h3>✅ Database is Up to Date!</h3>
@@ -295,7 +257,6 @@ def db_setup():
             </div>
         """
     except OperationalError:
-        # Missing columns - need to recreate
         db.drop_all()
         db.create_all()
         tables = inspector.get_table_names()
@@ -309,16 +270,12 @@ def db_setup():
             </div>
         """
 
-
 # ========== AUTH ROUTES ==========
 
-# Home
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
-# Register
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -328,10 +285,8 @@ def register():
         role = request.form.get("role", "")
         phone_number = request.form.get("phone_number", "").strip()
 
-        # Validation checks
         errors = []
         
-        # Check for empty fields
         if not name:
             errors.append("Name is required")
         else:
@@ -357,7 +312,6 @@ def register():
         if phone_number and not re.match(r'^\+?[0-9\s\-]{8,20}$', phone_number):
             errors.append("Please enter a valid phone number")
 
-        # If validation fails, return error messages
         if errors:
             error_html = "<h3>Please fix the following errors:</h3><ul>"
             for error in errors:
@@ -365,17 +319,14 @@ def register():
             error_html += '</ul><a href="/register">Go Back</a>'
             return error_html
 
-        # Check if email already exists
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             return "Email already registered. Please use another one. <a href='/register'>Go Back</a>"
 
-        # Generate verification codes
         email_code = generate_verification_code()
         phone_code = generate_verification_code() if phone_number else None
         expiry = datetime.utcnow() + timedelta(hours=24)
 
-        # Create new user with hashed password
         hashed_password = generate_password_hash(password)
         new_user = User(
             name=name,
@@ -393,7 +344,6 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
-        # Try to send verification email (NEVER crash registration)
         email_sent = False
         try:
             email_sent = send_verification_email(email, email_code)
@@ -403,26 +353,21 @@ def register():
         if phone_number:
             send_verification_sms(phone_number, phone_code)
         
-        # Store user_id in session for verification
         session["pending_user_id"] = new_user.id
         
         if not email_sent:
-            # Show the code directly on the verification page as fallback
             return redirect(f"/verify-account?show_code={email_code}")
         
         return redirect("/verify-account")
 
     return render_template("register.html")
 
-
-# Login
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
-        # Basic validation
         if not email or not password:
             return "Email and password are required. <a href='/login'>Go Back</a>"
 
@@ -438,28 +383,19 @@ def login():
 
     return render_template("login.html")
 
-
-# Dashboard (Protected)
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
         return redirect("/login")
-    
     user = User.query.get(session["user_id"])
-    
-    # Admin goes to admin panel
     if user.role == 'admin':
         return redirect("/admin")
-    
     return render_template("dashboard.html", user=user)
 
-
-# Logout
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
-
 
 # ========== ACCOUNT VERIFICATION ROUTES ==========
 
@@ -477,20 +413,17 @@ def verify_account():
         email_code = request.form.get("email_code", "").strip()
         phone_code = request.form.get("phone_code", "").strip()
         
-        # Check expiry
         if user.verification_code_expiry and user.verification_code_expiry < datetime.utcnow():
             return "Verification codes have expired. <a href='/resend-verification'>Resend Codes</a>"
         
-        # Verify email
         if email_code == user.email_verification_code:
             user.email_verified = True
         
-        # Verify phone (if provided)
         if user.phone_number:
             if phone_code == user.phone_verification_code:
                 user.phone_verified = True
         else:
-            user.phone_verified = True  # No phone provided
+            user.phone_verified = True
         
         db.session.commit()
         
@@ -503,11 +436,8 @@ def verify_account():
         else:
             return "Invalid verification codes. Please try again. <a href='/verify-account'>Go Back</a>"
     
-    # Check if we need to show the code directly (email failed)
     show_code = request.args.get('show_code', '')
-    
     return render_template("verify_account.html", user=user, show_code=show_code)
-
 
 @app.route("/resend-verification")
 def resend_verification():
@@ -518,14 +448,12 @@ def resend_verification():
     if not user:
         return redirect("/register")
     
-    # Generate new codes
     user.email_verification_code = generate_verification_code()
     if user.phone_number:
         user.phone_verification_code = generate_verification_code()
     user.verification_code_expiry = datetime.utcnow() + timedelta(hours=24)
     db.session.commit()
     
-    # Resend codes
     email_sent = send_verification_email(user.email, user.email_verification_code)
     if user.phone_number:
         send_verification_sms(user.phone_number, user.phone_verification_code)
@@ -535,26 +463,19 @@ def resend_verification():
     
     return redirect("/verify-account?resent=1")
 
-
 # ========== PASSWORD RESET ROUTES ==========
 
-# Forgot Password - Request Reset
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        
         if not email:
             return "Email is required. <a href='/forgot-password'>Go Back</a>"
         
         user = User.query.filter_by(email=email).first()
-        
         if user:
-            # Generate reset token
             token = generate_reset_token(email)
             reset_url = url_for('reset_password', token=token, _external=True)
-            
-            # Try to send real email
             email_sent = send_password_reset_email(email, reset_url)
             
             if email_sent:
@@ -586,15 +507,11 @@ def forgot_password():
                     <p><a href='/login'>← Back to Login</a></p>
                 </div>
             """
-    
     return render_template("forgot_password.html")
 
-
-# Reset Password - Set New Password
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
     email = verify_reset_token(token)
-    
     if not email:
         return """
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
@@ -607,14 +524,10 @@ def reset_password(token):
     if request.method == "POST":
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
-        
-        # Validation
         if not password or not confirm_password:
             return "Both fields are required. <a href=''>Go Back</a>"
-        
         if password != confirm_password:
             return "Passwords do not match. <a href=''>Go Back</a>"
-        
         valid, msg = is_valid_password(password)
         if not valid:
             return f"{msg}. <a href=''>Go Back</a>"
@@ -624,24 +537,17 @@ def reset_password(token):
             user.password = generate_password_hash(password)
             db.session.commit()
             return redirect("/login?reset=success")
-    
     return render_template("reset_password.html", token=token)
-
 
 # ========== JOB ROUTES ==========
 
-# Browse all jobs (accessible to everyone)
 @app.route("/jobs")
 def browse_jobs():
-    # Get filter parameters
     category = request.args.get('category', '')
     job_type = request.args.get('job_type', '')
     location = request.args.get('location', '')
     
-    # Base query - only active jobs
     query = Job.query.filter_by(is_active=True)
-    
-    # Apply filters if provided
     if category:
         query = query.filter_by(category=category)
     if job_type:
@@ -651,51 +557,31 @@ def browse_jobs():
     
     jobs = query.order_by(Job.posted_date.desc()).all()
     
-    # Get unique categories and job types for filter dropdowns
     categories = db.session.query(Job.category).distinct().all()
     categories = [c[0] for c in categories if c[0]]
-    
     job_types = db.session.query(Job.job_type).distinct().all()
     job_types = [j[0] for j in job_types if j[0]]
     
-    return render_template("jobs.html", 
-                         jobs=jobs, 
-                         categories=categories, 
-                         job_types=job_types,
-                         selected_category=category,
-                         selected_type=job_type,
-                         selected_location=location)
+    return render_template("jobs.html", jobs=jobs, categories=categories, job_types=job_types,
+                         selected_category=category, selected_type=job_type, selected_location=location)
 
-
-# View single job details
 @app.route("/job/<int:job_id>")
 def job_detail(job_id):
     job = Job.query.get_or_404(job_id)
-    
-    # Check if current user has already applied
     has_applied = False
     if "user_id" in session:
-        existing_application = Application.query.filter_by(
-            job_id=job_id, 
-            applicant_id=session["user_id"]
-        ).first()
-        has_applied = existing_application is not None
-    
+        existing = Application.query.filter_by(job_id=job_id, applicant_id=session["user_id"]).first()
+        has_applied = existing is not None
     return render_template("job_detail.html", job=job, has_applied=has_applied)
 
-
-# Post a new job (VERIFIED employers only)
 @app.route("/post-job", methods=["GET", "POST"])
 def post_job():
-    # Check if user is logged in and is an employer
     if "user_id" not in session:
         return redirect("/login")
     if session.get("role") != "employer":
         return "Only employers can post jobs. <a href='/dashboard'>Go to Dashboard</a>"
     
     user = User.query.get(session["user_id"])
-    
-    # Check if employer is verified
     if not user.verified:
         return """
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
@@ -716,44 +602,29 @@ def post_job():
         job_type = request.form.get("job_type", "")
         category = request.form.get("category", "")
         
-        # Basic validation
         if not all([title, company, location, description, requirements]):
             return "All fields except salary are required. <a href='/post-job'>Go Back</a>"
         
-        # Create new job
         new_job = Job(
-            title=title,
-            company=company,
-            location=location,
-            description=description,
-            requirements=requirements,
-            salary=salary if salary else "Negotiable",
-            job_type=job_type,
-            category=category,
-            employer_id=session["user_id"]
+            title=title, company=company, location=location, description=description,
+            requirements=requirements, salary=salary if salary else "Negotiable",
+            job_type=job_type, category=category, employer_id=session["user_id"]
         )
-        
         db.session.add(new_job)
         db.session.commit()
-        
         return redirect("/my-jobs")
     
     return render_template("post_job.html", user=user)
 
-
-# My Jobs (employers only - view their posted jobs)
 @app.route("/my-jobs")
 def my_jobs():
     if "user_id" not in session:
         return redirect("/login")
     if session.get("role") != "employer":
         return redirect("/dashboard")
-    
     jobs = Job.query.filter_by(employer_id=session["user_id"]).order_by(Job.posted_date.desc()).all()
     return render_template("my_jobs.html", jobs=jobs)
 
-
-# Apply to a job (VERIFIED job seekers only)
 @app.route("/apply/<int:job_id>", methods=["POST"])
 def apply_job(job_id):
     if "user_id" not in session:
@@ -762,8 +633,6 @@ def apply_job(job_id):
         return "Only job seekers can apply to jobs. <a href='/jobs'>Browse Jobs</a>"
     
     user = User.query.get(session["user_id"])
-    
-    # Check if job seeker is verified
     if not user.seeker_verified:
         return """
             <div style='padding: 20px; background: white; border-radius: 10px; max-width: 500px; margin: 50px auto; text-align: center;'>
@@ -775,85 +644,50 @@ def apply_job(job_id):
         """
     
     cover_letter = request.form.get("cover_letter", "").strip()
-    
-    # Check if already applied
-    existing = Application.query.filter_by(
-        job_id=job_id,
-        applicant_id=session["user_id"]
-    ).first()
-    
+    existing = Application.query.filter_by(job_id=job_id, applicant_id=session["user_id"]).first()
     if existing:
         return "You have already applied to this job. <a href='/jobs'>Browse Jobs</a>"
     
-    # Create application
-    application = Application(
-        job_id=job_id,
-        applicant_id=session["user_id"],
-        cover_letter=cover_letter
-    )
-    
+    application = Application(job_id=job_id, applicant_id=session["user_id"], cover_letter=cover_letter)
     db.session.add(application)
     db.session.commit()
-    
     return redirect(f"/job/{job_id}?applied=success")
 
-
-# View applicants for a specific job (employers only)
 @app.route("/job/<int:job_id>/applicants")
 def view_applicants(job_id):
     if "user_id" not in session:
         return redirect("/login")
-    
     job = Job.query.get_or_404(job_id)
-    
-    # Check if current user owns this job
     if job.employer_id != session["user_id"]:
         return "You don't have permission to view these applicants."
-    
     applications = Application.query.filter_by(job_id=job_id).order_by(Application.applied_date.desc()).all()
     return render_template("applicants.html", job=job, applications=applications)
 
-
-# Delete a job (employers only)
 @app.route("/job/<int:job_id>/delete")
 def delete_job(job_id):
     if "user_id" not in session:
         return redirect("/login")
-    
     job = Job.query.get_or_404(job_id)
-    
-    # Check ownership
     if job.employer_id != session["user_id"]:
         return "You don't have permission to delete this job."
-    
-    # Delete all applications first (due to foreign key)
     Application.query.filter_by(job_id=job_id).delete()
     db.session.delete(job)
     db.session.commit()
-    
     return redirect("/my-jobs")
 
-
-# Toggle job active/inactive
 @app.route("/job/<int:job_id>/toggle")
 def toggle_job(job_id):
     if "user_id" not in session:
         return redirect("/login")
-    
     job = Job.query.get_or_404(job_id)
-    
     if job.employer_id != session["user_id"]:
         return "You don't have permission to modify this job."
-    
     job.is_active = not job.is_active
     db.session.commit()
-    
     return redirect("/my-jobs")
-
 
 # ========== EMPLOYER VERIFICATION ROUTES ==========
 
-# Request verification (employers only)
 @app.route("/request-verification", methods=["GET", "POST"])
 def request_verification():
     if "user_id" not in session:
@@ -869,11 +703,34 @@ def request_verification():
         company_address = request.form.get("company_address", "").strip()
         company_phone = request.form.get("company_phone", "").strip()
         
-        # Validation
         if not all([company_name, company_registration, company_address, company_phone]):
             return "All fields are required. <a href='/request-verification'>Go Back</a>"
         
-        # Update user with company details
+        # Handle document uploads
+        docs_folder = 'static/uploads/verification_docs'
+        os.makedirs(docs_folder, exist_ok=True)
+        
+        # Upload registration certificate
+        reg_cert_file = request.files.get('registration_cert')
+        if reg_cert_file and reg_cert_file.filename and allowed_verification_file(reg_cert_file.filename):
+            reg_filename = secure_filename(f"reg_cert_{user.id}_{reg_cert_file.filename}")
+            reg_cert_file.save(os.path.join(docs_folder, reg_filename))
+            user.registration_cert = reg_filename
+        
+        # Upload tax clearance
+        tax_file = request.files.get('tax_clearance')
+        if tax_file and tax_file.filename and allowed_verification_file(tax_file.filename):
+            tax_filename = secure_filename(f"tax_{user.id}_{tax_file.filename}")
+            tax_file.save(os.path.join(docs_folder, tax_filename))
+            user.tax_clearance = tax_filename
+        
+        # Upload business license
+        license_file = request.files.get('business_license')
+        if license_file and license_file.filename and allowed_verification_file(license_file.filename):
+            license_filename = secure_filename(f"license_{user.id}_{license_file.filename}")
+            license_file.save(os.path.join(docs_folder, license_filename))
+            user.business_license = license_filename
+        
         user.company_name = company_name
         user.company_registration = company_registration
         user.company_address = company_address
@@ -881,15 +738,12 @@ def request_verification():
         user.verification_requested = True
         
         db.session.commit()
-        
         return redirect("/dashboard?verification_requested=1")
     
     return render_template("request_verification.html", user=user)
 
-
 # ========== JOB SEEKER VERIFICATION ROUTES ==========
 
-# Request verification (job seekers only)
 @app.route("/request-seeker-verification", methods=["GET", "POST"])
 def request_seeker_verification():
     if "user_id" not in session:
@@ -903,7 +757,9 @@ def request_seeker_verification():
         first_name = request.form.get("first_name", "").strip()
         surname = request.form.get("surname", "").strip()
         date_of_birth = request.form.get("date_of_birth", "")
+        id_type = request.form.get("id_type", "national_id")
         national_id = request.form.get("national_id", "").strip()
+        passport_number = request.form.get("passport_number", "").strip()
         gender = request.form.get("gender", "")
         religion = request.form.get("religion", "").strip()
         marital_status = request.form.get("marital_status", "")
@@ -911,15 +767,46 @@ def request_seeker_verification():
         home_address = request.form.get("home_address", "").strip()
         contact_phone = request.form.get("contact_phone", "").strip()
         
-        # Validation
-        if not all([first_name, surname, date_of_birth, national_id, gender, home_address]):
+        # Validate based on ID type
+        if id_type == 'national_id' and not national_id:
+            return "National ID is required. <a href='/request-seeker-verification'>Go Back</a>"
+        if id_type == 'passport' and not passport_number:
+            return "Passport number is required. <a href='/request-seeker-verification'>Go Back</a>"
+        
+        if not all([first_name, surname, date_of_birth, gender, home_address]):
             return "All required fields must be filled. <a href='/request-seeker-verification'>Go Back</a>"
         
-        # Update user with personal details
+        # Handle ID document uploads
+        docs_folder = 'static/uploads/id_docs'
+        os.makedirs(docs_folder, exist_ok=True)
+        
+        # Upload front of ID
+        id_front_file = request.files.get('id_front')
+        if id_front_file and id_front_file.filename and allowed_verification_file(id_front_file.filename):
+            front_filename = secure_filename(f"id_front_{user.id}_{id_front_file.filename}")
+            id_front_file.save(os.path.join(docs_folder, front_filename))
+            user.id_front_image = front_filename
+        
+        # Upload back of ID (for national ID only)
+        id_back_file = request.files.get('id_back')
+        if id_back_file and id_back_file.filename and allowed_verification_file(id_back_file.filename):
+            back_filename = secure_filename(f"id_back_{user.id}_{id_back_file.filename}")
+            id_back_file.save(os.path.join(docs_folder, back_filename))
+            user.id_back_image = back_filename
+        
+        # Upload selfie with ID
+        selfie_file = request.files.get('selfie_with_id')
+        if selfie_file and selfie_file.filename and allowed_verification_file(selfie_file.filename):
+            selfie_filename = secure_filename(f"selfie_{user.id}_{selfie_file.filename}")
+            selfie_file.save(os.path.join(docs_folder, selfie_filename))
+            user.selfie_with_id = selfie_filename
+        
         user.first_name = first_name
         user.surname = surname
         user.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
-        user.national_id = national_id
+        user.id_type = id_type
+        user.national_id = national_id if id_type == 'national_id' else None
+        user.passport_number = passport_number if id_type == 'passport' else None
         user.gender = gender
         user.religion = religion
         user.marital_status = marital_status
@@ -929,205 +816,115 @@ def request_seeker_verification():
         user.seeker_verification_requested = True
         
         db.session.commit()
-        
         return redirect("/dashboard?verification_requested=1")
     
     return render_template("request_seeker_verification.html", user=user)
 
-
 # ========== ADMIN ROUTES ==========
 
-# Admin Panel - Pending Verifications
 @app.route("/admin/verifications")
 @admin_required
 def admin_verifications():
-    pending_employers = User.query.filter_by(
-        role='employer', 
-        verification_requested=True, 
-        verified=False
-    ).all()
-    
-    verified_employers = User.query.filter_by(
-        role='employer',
-        verified=True
-    ).all()
-    
-    return render_template("admin_verifications.html", 
-                         pending=pending_employers,
-                         verified=verified_employers)
+    pending_employers = User.query.filter_by(role='employer', verification_requested=True, verified=False).all()
+    verified_employers = User.query.filter_by(role='employer', verified=True).all()
+    return render_template("admin_verifications.html", pending=pending_employers, verified=verified_employers)
 
-
-# Admin - View All Employers
 @app.route("/admin/employers")
 @admin_required
 def admin_all_employers():
-    # Get all employers with their verification status
     verified_employers = User.query.filter_by(role='employer', verified=True).all()
     unverified_employers = User.query.filter_by(role='employer', verified=False, verification_requested=False).all()
     pending_employers = User.query.filter_by(role='employer', verification_requested=True, verified=False).all()
-    
-    return render_template("admin_employers.html",
-                         verified=verified_employers,
-                         unverified=unverified_employers,
-                         pending=pending_employers)
+    return render_template("admin_employers.html", verified=verified_employers, unverified=unverified_employers, pending=pending_employers)
 
-
-# Admin - Approve Employer Verification
 @app.route("/admin/verify/<int:employer_id>")
 @admin_required
 def verify_employer(employer_id):
     employer = User.query.get_or_404(employer_id)
-    
     if employer.role != 'employer':
         return "Invalid user type."
-    
     employer.verified = True
     employer.verification_date = datetime.utcnow()
     employer.verified_by = session["user_id"]
-    
     db.session.commit()
-    
     return redirect("/admin/verifications?approved=1")
 
-
-# Admin - Reject Employer Verification
 @app.route("/admin/reject/<int:employer_id>")
 @admin_required
 def reject_verification(employer_id):
     employer = User.query.get_or_404(employer_id)
-    
     if employer.role != 'employer':
         return "Invalid user type."
-    
     employer.verification_requested = False
     employer.verified = False
-    
     db.session.commit()
-    
     return redirect("/admin/verifications?rejected=1")
 
-
-# Admin - Delete User
 @app.route("/admin/delete-user/<int:user_id>")
 @admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
-    
-    # Prevent admin from deleting themselves
     if user.id == session["user_id"]:
         return "You cannot delete your own admin account. <a href='/admin/employers'>Go Back</a>"
     
-    # Delete all jobs posted by this user (if employer)
     if user.role == 'employer':
-        # Delete applications for jobs this employer posted first
         jobs = Job.query.filter_by(employer_id=user.id).all()
         for job in jobs:
             Application.query.filter_by(job_id=job.id).delete()
-        # Then delete the jobs
         Job.query.filter_by(employer_id=user.id).delete()
     
-    # Delete all applications by this user (if job seeker)
     Application.query.filter_by(applicant_id=user.id).delete()
-    
-    # Delete the user
     db.session.delete(user)
     db.session.commit()
-    
     return redirect("/admin/employers?deleted=1")
 
-
-# Admin - View Pending Job Seeker Verifications
 @app.route("/admin/seeker-verifications")
 @admin_required
 def admin_seeker_verifications():
-    pending_seekers = User.query.filter_by(
-        role='job_seeker',
-        seeker_verification_requested=True,
-        seeker_verified=False
-    ).all()
-    
-    verified_seekers = User.query.filter_by(
-        role='job_seeker',
-        seeker_verified=True
-    ).all()
-    
-    return render_template("admin_seeker_verifications.html",
-                         pending=pending_seekers,
-                         verified=verified_seekers)
+    pending_seekers = User.query.filter_by(role='job_seeker', seeker_verification_requested=True, seeker_verified=False).all()
+    verified_seekers = User.query.filter_by(role='job_seeker', seeker_verified=True).all()
+    return render_template("admin_seeker_verifications.html", pending=pending_seekers, verified=verified_seekers)
 
-
-# Admin - Approve Job Seeker Verification
 @app.route("/admin/verify-seeker/<int:seeker_id>")
 @admin_required
 def verify_seeker(seeker_id):
     seeker = User.query.get_or_404(seeker_id)
-    
     if seeker.role != 'job_seeker':
         return "Invalid user type."
-    
     seeker.seeker_verified = True
     seeker.seeker_verification_date = datetime.utcnow()
     seeker.seeker_verified_by = session["user_id"]
-    
     db.session.commit()
-    
     return redirect("/admin/seeker-verifications?approved=1")
 
-
-# Admin - Reject Job Seeker Verification
 @app.route("/admin/reject-seeker/<int:seeker_id>")
 @admin_required
 def reject_seeker_verification(seeker_id):
     seeker = User.query.get_or_404(seeker_id)
-    
     if seeker.role != 'job_seeker':
         return "Invalid user type."
-    
     seeker.seeker_verification_requested = False
     seeker.seeker_verified = False
-    
     db.session.commit()
-    
     return redirect("/admin/seeker-verifications?rejected=1")
 
-
-# Admin Dashboard
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
-    # Stats
     total_users = User.query.count()
     total_employers = User.query.filter_by(role='employer').count()
     total_seekers = User.query.filter_by(role='job_seeker').count()
     total_jobs = Job.query.filter_by(is_active=True).count()
-    pending_verifications = User.query.filter_by(
-        role='employer', 
-        verification_requested=True, 
-        verified=False
-    ).count()
-    verified_employers = User.query.filter_by(
-        role='employer',
-        verified=True
-    ).count()
-    pending_seeker_verifications = User.query.filter_by(
-        role='job_seeker',
-        seeker_verification_requested=True,
-        seeker_verified=False
-    ).count()
+    pending_verifications = User.query.filter_by(role='employer', verification_requested=True, verified=False).count()
+    verified_employers = User.query.filter_by(role='employer', verified=True).count()
+    pending_seeker_verifications = User.query.filter_by(role='job_seeker', seeker_verification_requested=True, seeker_verified=False).count()
     
-    return render_template("admin_dashboard.html",
-                         total_users=total_users,
-                         total_employers=total_employers,
-                         total_seekers=total_seekers,
-                         total_jobs=total_jobs,
-                         pending_verifications=pending_verifications,
-                         verified_employers=verified_employers,
-                         pending_seeker_verifications=pending_seeker_verifications)
-
+    return render_template("admin_dashboard.html", total_users=total_users, total_employers=total_employers,
+                         total_seekers=total_seekers, total_jobs=total_jobs, pending_verifications=pending_verifications,
+                         verified_employers=verified_employers, pending_seeker_verifications=pending_seeker_verifications)
 
 # ========== PROFILE ROUTES ==========
 
-# View/Edit Profile
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
     if "user_id" not in session:
@@ -1137,14 +934,11 @@ def profile():
     
     if request.method == "POST":
         if user.role == 'job_seeker':
-            # Update personal details
             user.first_name = request.form.get("first_name", "").strip()
             user.surname = request.form.get("surname", "").strip()
-            
             dob = request.form.get("date_of_birth", "")
             if dob:
                 user.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
-            
             user.national_id = request.form.get("national_id", "").strip()
             user.gender = request.form.get("gender", "")
             user.religion = request.form.get("religion", "").strip()
@@ -1153,20 +947,16 @@ def profile():
             user.home_address = request.form.get("home_address", "").strip()
             user.contact_phone = request.form.get("contact_phone", "").strip()
             
-            # Update skills and qualifications
             skills = request.form.get("skills", "").strip()
             qualifications = request.form.get("qualifications", "").strip()
             experience_years = request.form.get("experience_years", "")
-            
             user.skills = skills
             user.qualifications = qualifications
             user.experience_years = int(experience_years) if experience_years else 0
             
-            # Check if profile is complete
             if skills and qualifications:
                 user.profile_complete = True
             
-            # Handle resume upload
             if 'resume' in request.files:
                 file = request.files['resume']
                 if file and file.filename and allowed_file(file.filename):
@@ -1176,11 +966,9 @@ def profile():
                     user.resume_filename = filename
             
         elif user.role == 'employer':
-            # Update employer profile
             company_name = request.form.get("company_name", "").strip()
             company_phone = request.form.get("company_phone", "").strip()
             company_address = request.form.get("company_address", "").strip()
-            
             if company_name:
                 user.company_name = company_name
             if company_phone:
@@ -1193,29 +981,19 @@ def profile():
     
     return render_template("profile.html", user=user)
 
-
-# View public profile (for employers to see applicants)
 @app.route("/applicant/<int:applicant_id>")
 def view_applicant_profile(applicant_id):
     if "user_id" not in session:
         return redirect("/login")
-    
-    # Only employers can view applicant profiles
     if session.get("role") != "employer":
         return redirect("/dashboard")
-    
     applicant = User.query.get_or_404(applicant_id)
-    
-    # Ensure the applicant is a job seeker
     if applicant.role != 'job_seeker':
         return "Invalid user type."
-    
     return render_template("applicant_profile.html", applicant=applicant)
-
 
 # ========== AI MATCHING ROUTES ==========
 
-# Recommended Jobs (only matching skills)
 @app.route("/recommended-jobs")
 def recommended_jobs():
     if "user_id" not in session:
@@ -1224,41 +1002,23 @@ def recommended_jobs():
         return redirect("/dashboard")
     
     user = User.query.get(session["user_id"])
-    
-    # Get all active jobs
     all_jobs = Job.query.filter_by(is_active=True).all()
     
-    # If user has no skills, show message instead of random jobs
     if not user.skills or not user.skills.strip():
-        return render_template("recommended_jobs.html",
-                             recommended_jobs=[],
-                             new_jobs=[],
-                             user=user,
-                             no_skills=True)
+        return render_template("recommended_jobs.html", recommended_jobs=[], new_jobs=[], user=user, no_skills=True)
     
-    # Get recommendations based on user's actual skills
     recommended_job_ids = get_job_recommendations(user, all_jobs, top_n=10)
-    
-    # Fetch the actual job objects in the recommended order
     recommended_jobs = []
     job_dict = {job.id: job for job in all_jobs}
-    
     for job_id in recommended_job_ids:
         if job_id in job_dict:
             recommended_jobs.append(job_dict[job_id])
     
-    # Get jobs that user hasn't applied to
     applied_job_ids = [app.job_id for app in user.applications]
     new_jobs = [job for job in all_jobs if job.id not in applied_job_ids and job.id not in recommended_job_ids]
     
-    return render_template("recommended_jobs.html",
-                         recommended_jobs=recommended_jobs,
-                         new_jobs=new_jobs[:5],
-                         user=user,
-                         no_skills=False)
+    return render_template("recommended_jobs.html", recommended_jobs=recommended_jobs, new_jobs=new_jobs[:5], user=user, no_skills=False)
 
-
-# AI Rank Candidates for a Job (employers only)
 @app.route("/job/<int:job_id>/rank-candidates")
 def rank_candidates(job_id):
     if "user_id" not in session:
@@ -1267,19 +1027,13 @@ def rank_candidates(job_id):
         return redirect("/dashboard")
     
     job = Job.query.get_or_404(job_id)
-    
-    # Check ownership
     if job.employer_id != session["user_id"]:
         return "You don't have permission to view this."
     
-    # Get all applicants for this job
     applications = Application.query.filter_by(job_id=job_id).all()
     candidates = [app.applicant for app in applications]
-    
-    # Get AI rankings with detailed results
     ranked_results = get_top_candidates(job, candidates, top_n=len(candidates))
     
-    # Build ranked applications list from the detailed results
     ranked_applications = []
     candidate_dict = {c.id: c for c in candidates}
     app_dict = {app.applicant_id: app for app in applications}
@@ -1298,34 +1052,19 @@ def rank_candidates(job_id):
                 'total_required': result['total_required_skills']
             })
     
-    return render_template("ranked_candidates.html",
-                         job=job,
-                         ranked_applications=ranked_applications)
+    return render_template("ranked_candidates.html", job=job, ranked_applications=ranked_applications)
 
-
-# ========== ADVANCED AI ROUTES ==========
-
-# Skill Gap Analysis for a Job
 @app.route("/job/<int:job_id>/skill-gap")
 def skill_gap_analysis(job_id):
     if "user_id" not in session:
         return redirect("/login")
     if session.get("role") != "job_seeker":
         return redirect("/dashboard")
-    
     user = User.query.get(session["user_id"])
     job = Job.query.get_or_404(job_id)
-    
-    # Get skill gap analysis
     gap_analysis = matcher.get_skill_gap_analysis(user, job)
-    
-    return render_template("skill_gap.html", 
-                         job=job, 
-                         user=user, 
-                         analysis=gap_analysis)
+    return render_template("skill_gap.html", job=job, user=user, analysis=gap_analysis)
 
-
-# Blind Screening (Bias-Free) Ranking
 @app.route("/job/<int:job_id>/blind-screening")
 def blind_screening(job_id):
     if "user_id" not in session:
@@ -1334,23 +1073,14 @@ def blind_screening(job_id):
         return redirect("/dashboard")
     
     job = Job.query.get_or_404(job_id)
-    
-    # Check ownership
     if job.employer_id != session["user_id"]:
         return "You don't have permission to view this."
     
-    # Get all applicants
     applications = Application.query.filter_by(job_id=job_id).all()
-    
-    # If no applicants, return empty page
     if not applications:
-        return render_template("blind_screening.html",
-                             job=job,
-                             ranked_candidates=[])
+        return render_template("blind_screening.html", job=job, ranked_candidates=[])
     
     candidates = [app.applicant for app in applications]
-    
-    # Calculate blind screening scores (no demographic info)
     blind_scores = []
     for candidate in candidates:
         try:
@@ -1358,87 +1088,47 @@ def blind_screening(job_id):
         except Exception as e:
             print(f"Error scoring candidate {candidate.id}: {e}")
             score = 0.0
-        
-        # Find matching application
         app = next((a for a in applications if a.applicant_id == candidate.id), None)
-        
         if app:
-            blind_scores.append({
-                'candidate': candidate,
-                'application': app,
-                'blind_score': score
-            })
+            blind_scores.append({'candidate': candidate, 'application': app, 'blind_score': score})
     
-    # Sort by blind score (highest first)
     blind_scores.sort(key=lambda x: x['blind_score'], reverse=True)
-    
-    # Always return the template
-    return render_template("blind_screening.html",
-                         job=job,
-                         ranked_candidates=blind_scores)
+    return render_template("blind_screening.html", job=job, ranked_candidates=blind_scores)
 
-
-# Job Trends Visualization
 @app.route("/job-trends")
 def job_trends():
     if "user_id" not in session:
         return redirect("/login")
     
-    # Get job counts by category
     categories = db.session.query(Job.category, db.func.count(Job.id)).filter_by(is_active=True).group_by(Job.category).all()
-    
-    # Get job counts by location
     locations = db.session.query(Job.location, db.func.count(Job.id)).filter_by(is_active=True).group_by(Job.location).all()
-    
-    # Get job counts by type
     job_types = db.session.query(Job.job_type, db.func.count(Job.id)).filter_by(is_active=True).group_by(Job.job_type).all()
-    
-    # Get total active jobs
     total_jobs = Job.query.filter_by(is_active=True).count()
-    
-    # Get skills in demand
     recommended_skills = get_skill_recommendations("", Job.query.filter_by(is_active=True).all(), top_n=10)
     
-    return render_template("job_trends.html",
-                         categories=categories,
-                         locations=locations,
-                         job_types=job_types,
-                         total_jobs=total_jobs,
-                         recommended_skills=recommended_skills)
+    return render_template("job_trends.html", categories=categories, locations=locations, job_types=job_types,
+                         total_jobs=total_jobs, recommended_skills=recommended_skills)
 
-
-# Skill Suggestions API (for autocomplete)
 @app.route("/api/skill-suggestions")
 def skill_suggestions():
     if "user_id" not in session:
         return {"suggestions": []}
-    
     query = request.args.get('q', '').strip()
-    
     if len(query) < 2:
         return {"suggestions": []}
-    
     suggestions = matcher.suggest_skills(query, limit=8)
     return {"suggestions": suggestions}
 
-
-# Market Skill Recommendations
 @app.route("/skill-recommendations")
 def skill_recommendations():
     if "user_id" not in session:
         return redirect("/login")
     if session.get("role") != "job_seeker":
         return redirect("/dashboard")
-    
     user = User.query.get(session["user_id"])
     all_jobs = Job.query.filter_by(is_active=True).all()
-    
     recommended_skills = get_skill_recommendations(user.skills, all_jobs, top_n=10)
-    
-    return render_template("skill_recommendations.html",
-                         user=user,
-                         recommended_skills=recommended_skills)
-
+    return render_template("skill_recommendations.html", user=user, recommended_skills=recommended_skills)
 
 if __name__ == "__main__":
     app.run(debug=True)
